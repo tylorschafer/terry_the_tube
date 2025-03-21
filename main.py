@@ -32,7 +32,7 @@ def cleanup_old_files():
     else:
         os.makedirs("audio")
     
-    # Create and clean up transcripts directory
+    # Create transcipts folder
     if not os.path.exists("transcripts"):
         os.makedirs("transcripts")
     else:
@@ -98,6 +98,7 @@ Only ever ask questions and don't say you are waiting.
 After asking exactly 3 questions say the words: "BEER HERE!" to dispense the subject a beer.
 Do not ask a question if you have already asked 3 questions. Do not ask a question if you have already dispensed a beer.
 Then respond with "Enjoy the Miller Light Asshole."
+Do not use any *asterics* in your output.
 
 Here is the conversation history: {context}
 Keep your responses brief and to the point.
@@ -230,13 +231,12 @@ def handle_conversation():
     """Main conversation loop for the beer tube"""
     print("Beer Tube activated! Ready to interact with humans.")
     
-    # Clean up old files at startup
     cleanup_old_files()
     
     # Initialize the LLM
     try:
         # Set a shorter timeout for faster responses
-        model = OllamaLLM(model="mistral-small:24b", temperature=0.7, timeout=10)
+        model = OllamaLLM(model="gemma3:4b-it-q8_0", temperature=0.7, timeout=6)
         prompt = ChatPromptTemplate.from_template(template)
         chain = prompt | model
         exit_string = "Asshole."
@@ -292,14 +292,15 @@ def handle_conversation():
             conversation_history.append(f"AI: {response}")
             
             # Print and speak the response
-            print("Beer Tube: " + response)
-            text_to_speech(response)
+            stripped_response = response.replace("*", "")
+            print("Beer Tube: " + stripped_response)
+            text_to_speech(stripped_response)
             
             # Check if beer should be dispensed
             if "BEER HERE!" in response and not beer_dispensed:
                 beer_dispensed = True
                 print("*Beer dispensing mechanism activated*")
-                # You could add code here to control actual hardware
+                # Activate Servo to dispense beer
             
             # Check if conversation is over
             if exit_string in response:
