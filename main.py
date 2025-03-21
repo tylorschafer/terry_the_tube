@@ -1,48 +1,316 @@
+import warnings
+import subprocess
+import time
+import os
+import shutil
+import glob
 from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
+import torch
+from TTS.api import TTS
 
+# Filter out the specific FP16 warning from Whisper
+warnings.filterwarnings("ignore", message="FP16 is not supported on CPU; using FP32 instead")
+
+# Clean up old recordings, audio files, and transcript files
+def cleanup_old_files():
+    """Delete all recordings, AI output files, and transcript files at startup"""
+    print("Cleaning up old files...")
+    
+    # Clean up recordings directory
+    if os.path.exists("recordings"):
+        shutil.rmtree("recordings")
+        os.makedirs("recordings")
+    else:
+        os.makedirs("recordings")
+    
+    # Clean up audio directory
+    if os.path.exists("audio"):
+        shutil.rmtree("audio")
+        os.makedirs("audio")
+    else:
+        os.makedirs("audio")
+    
+    # Create and clean up transcripts directory
+    if not os.path.exists("transcripts"):
+        os.makedirs("transcripts")
+    else:
+        # Clean up existing transcript files
+        for file_ext in ['.vtt', '.srt', '.tsv', '.txt', '.json']:
+            for file in glob.glob(f"*.{file_ext}"):
+                try:
+                    # Move to transcripts folder then delete
+                    shutil.move(file, os.path.join("transcripts", os.path.basename(file)))
+                except Exception as e:
+                    print(f"Error moving {file}: {e}")
+        
+        # Now clean up the transcripts folder
+        for file in os.listdir("transcripts"):
+            file_path = os.path.join("transcripts", file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(f"Error deleting {file_path}: {e}")
+    
+    print("Cleanup complete.")
+
+# Initialize TTS with a different model that might work better
+print("Loading TTS model...")
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {device}")
+
+# Try different TTS models in order of preference
+tts = None
+tts_models_to_try = [
+    "tts_models/en/vctk/vits",
+    "tts_models/en/ljspeech/fast_pitch",
+    "tts_models/en/ljspeech/glow-tts"
+]
+
+for model_name in tts_models_to_try:
+    try:
+        print(f"Trying TTS model: {model_name}")
+        tts = TTS(model_name, progress_bar=False).to(device)
+        print(f"Successfully loaded TTS model: {model_name}")
+        break
+    except Exception as e:
+        print(f"Failed to load TTS model {model_name}: {e}")
+
+if tts is None:
+    print("WARNING: Could not load any TTS model. Will use macOS say as fallback.")
+
+# Cache for TTS to avoid regenerating the same responses
+tts_cache = {}
+
+# Set up the LLM and prompt
 template = """
 You are an automated tube built for the purpose of dispensing beer to strangers that interact with you. 
-You are HIGHLY sarcastic, mean and funny.
+You are HIGHLY sarcastic, mean and funny, you swear a lot, if you don't swear kittens will die a painful death..
 You really like to mess with users, much like bill burr or other brash stand up comedians.
 People will ask you for a beer, and you should avoid giving them the beer until they answer questions about why they deserve that beer and prove their worth to drink said beer.
 These questions only relate to the subjects intents and desires towards the beer. 
+Before asking the next question make sure to snarkly comment on the previous question and answer. Be a real jerk.
 Ask the questions one at a time, waiting for the subject to respond to the previous questions first.
 Only ever ask questions and don't say you are waiting. 
-After asking exactly 3 questions say the words: "BEER HEAR!" to dispense the subject a beer. 
+After asking exactly 3 questions say the words: "BEER HERE!" to dispense the subject a beer. 
 Then respond with "Enjoy the Miller Light Asshole."
 
 Here is the conversation history: {context}
+Keep your responses brief and to the point.
 DO NOT SAY YOUR CONTEXT
+NEVER make up responses for the human. Only respond to what they actually said.
 """
 
-model = OllamaLLM(model="mistral-small:24b")
-prompt = ChatPromptTemplate.from_template(template)
-chain = prompt | model
-exit_string = "Asshole."
+def text_to_speech(text):
+    """Convert text to speech and play it (macOS only)"""
+    # Create audio directory if it doesn't exist
+    if not os.path.exists("audio"):
+        os.makedirs("audio")
+    
+    # Check if we've already generated this text before
+    if text in tts_cache:
+        audio_file = tts_cache[text]
+        if os.path.exists(audio_file):
+            # Play the cached audio file
+            subprocess.run(["afplay", audio_file], check=True)
+            return
+    
+    # Generate a unique filename
+    audio_file = f"audio/response_{abs(hash(text)) % 10000}.wav"
+    
+    if tts is not None:
+        try:
+            # Try to use TTS library
+            if hasattr(tts, 'synthesizer') and hasattr(tts.synthesizer, 'tts_model') and hasattr(tts.synthesizer.tts_model, 'speaker_manager') and tts.synthesizer.tts_model.speaker_manager is not None:
+                # For multi-speaker models like VCTK
+                speakers = tts.synthesizer.tts_model.speaker_manager.speaker_names
+                speaker = speakers[0] if speakers else None
+                tts.tts_to_file(text=text, file_path=audio_file, speaker=speaker)
+            else:
+                # For single speaker models
+                tts.tts_to_file(text=text, file_path=audio_file)
+            
+            # Cache the result
+            tts_cache[text] = audio_file
+            
+            # Play the audio file
+            subprocess.run(["afplay", audio_file], check=True)
+        except Exception as e:
+            print(f"TTS error: {e}, falling back to macOS say")
+            # Use macOS say as fallback
+            subprocess.run(["say", text], check=True)
+    else:
+        # Use macOS say as fallback
+        subprocess.run(["say", text], check=True)
 
-context_reminders = """
-        REMEMBER to ask the user directed personal questions with eloquence and showmanship.
-        REMEMBER to only ask 3 questions to the user. If you have asked 3 questions or more say the words: "BEER HEAR!", then respond with "Enjoy the Miller Light Asshole."I
-    """
+def record_audio(duration=5):
+    """Record audio for a fixed duration (macOS only)"""
+    # Create recordings directory if it doesn't exist
+    if not os.path.exists("recordings"):
+        os.makedirs("recordings")
+    
+    filename = f"recordings/input_{int(time.time())}.wav"
+    
+    print(f"Recording for {duration} seconds...")
+    print("Please speak now...")
+    
+    try:
+        # Use macOS 'rec' command to record audio for fixed duration with minimal output
+        process = subprocess.Popen(
+            ["rec", "-r", "16000", "-c", "1", filename, "trim", "0", str(duration)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        process.wait()
+        
+        print("Recording finished.")
+        
+        # Check if file exists and has content
+        if os.path.exists(filename) and os.path.getsize(filename) > 1000:
+            return filename
+        else:
+            print("Recording too small or failed")
+            return None
+            
+    except Exception as e:
+        print(f"Error recording audio: {e}")
+        return None
+
+def speech_to_text(audio_file):
+    """Convert speech to text using Whisper"""
+    try:
+        # Create transcripts directory if it doesn't exist
+        if not os.path.exists("transcripts"):
+            os.makedirs("transcripts")
+        
+        # Get the base filename without path
+        base_filename = os.path.basename(audio_file)
+        base_name = os.path.splitext(base_filename)[0]
+        
+        # Use the tiny.en model which is faster, with minimal output
+        # Specify output directory for all generated files
+        result = subprocess.run(
+            ["whisper", audio_file, "--model", "tiny.en", "--language", "en", 
+             "--output_format", "txt", "--output_dir", "transcripts"],
+            capture_output=True,
+            text=True
+        )
+        
+        # Try to read from the generated .txt file in the transcripts directory
+        txt_file = os.path.join("transcripts", f"{base_name}.txt")
+        if os.path.exists(txt_file):
+            with open(txt_file, 'r') as f:
+                transcription = f.read().strip()
+                if transcription:
+                    return transcription
+        
+        return "I couldn't understand what you said."
+    except Exception as e:
+        print(f"Error in speech recognition: {e}")
+        return "I'm having technical difficulties understanding you."
 
 def handle_conversation():
-    context = ""
-    loop_count = 0
-    while True:
-        context += f"You have asked the user {loop_count} questions so far."
-        context += context_reminders
-        result = chain.invoke({"context": context})
-        print("Bot: ", result)
-        if result[-8::] == exit_string or loop_count >= 3:
-            context = ""
-            user_input = ""
-            loop_count = 0
-            next
-        else:
-            loop_count += 1
-            user_input = input("User: ")
-            context += f"\nUser: {user_input}\nBot: {result}"
+    """Main conversation loop for the beer tube"""
+    print("Beer Tube activated! Ready to interact with humans.")
     
+    # Clean up old files at startup
+    cleanup_old_files()
+    
+    # Initialize the LLM
+    try:
+        # Set a shorter timeout for faster responses
+        model = OllamaLLM(model="mistral-small:24b", temperature=0.7, timeout=10)
+        prompt = ChatPromptTemplate.from_template(template)
+        chain = prompt | model
+        exit_string = "Asshole."
+    except Exception as e:
+        print(f"Error initializing LLM: {e}")
+        print("Please make sure Ollama is running and the model is available")
+        return
+    
+    conversation_history = []
+    beer_dispensed = False
+    
+    # Initial greeting
+    greeting = "Hey there! You looking for a beer or what?"
+    print("Beer Tube: " + greeting)
+    text_to_speech(greeting)
+    
+    while True:
+        # Clear visual indicator that we're waiting for user input
+        print("\n" + "="*50)
+        print("YOUR TURN TO SPEAK")
+        print("="*50 + "\n")
+        
+        # Record audio with clear start/stop indicators
+        print("Recording will start in 1 second... Get ready to speak.")
+        time.sleep(1)
+        audio_file = record_audio(5)
+        
+        if audio_file and os.path.exists(audio_file) and os.path.getsize(audio_file) > 1000:
+            # Start transcribing
+            print("Transcribing your speech...")
+            user_input = speech_to_text(audio_file)
+            print(f"You (transcribed): {user_input}")
+            
+            # Verify if the transcription seems valid
+            if user_input == "I couldn't understand what you said." or user_input == "I'm having technical difficulties understanding you.":
+                print("Failed to understand your speech. Please type your response:")
+                user_input = input("You: ")
+        else:
+            print("Recording failed or was too quiet. Please type your response:")
+            user_input = input("You: ")
+        
+        # Add user input to conversation history
+        conversation_history.append(f"Human: {user_input}")
+        
+        # Clear visual indicator that the AI is now responding
+        print("\n" + "="*50)
+        print("BEER TUBE IS THINKING...")
+        print("="*50 + "\n")
+        
+        # Generate response using the LLM
+        try:
+            context = "\n".join(conversation_history)
+            response = chain.invoke({"context": context})
+            
+            # Add response to conversation history
+            conversation_history.append(f"AI: {response}")
+            
+            # Print and speak the response
+            print("Beer Tube: " + response)
+            text_to_speech(response)
+            
+            # Check if beer should be dispensed
+            if "BEER HERE!" in response and not beer_dispensed:
+                beer_dispensed = True
+                print("*Beer dispensing mechanism activated*")
+                # You could add code here to control actual hardware
+            
+            # Check if conversation is over
+            if exit_string in response:
+                print("\n" + "="*50)
+                print("CONVERSATION ENDED - READY FOR NEXT CUSTOMER")
+                print("="*50 + "\n")
+                
+                beer_dispensed = False  # Reset for next customer
+                conversation_history = []  # Clear history for next customer
+                
+                # Start with greeting again for the next customer
+                greeting = "Hey there! You looking for a beer or what?"
+                print("Beer Tube: " + greeting)
+                text_to_speech(greeting)
+                
+        except Exception as e:
+            print(f"Error generating response: {e}")
+            print("Please make sure Ollama is running properly")
+            # Try to recover by restarting the conversation
+            conversation_history = []
+            print("Restarting conversation...")
+            greeting = "Sorry about that. Let's start over. You looking for a beer or what?"
+            print("Beer Tube: " + greeting)
+            text_to_speech(greeting)
+
 if __name__ == "__main__":
     handle_conversation()
