@@ -291,7 +291,7 @@ def handle_conversation():
             # Add response to conversation history
             conversation_history.append(f"AI: {response}")
             
-            # Print and speak the response
+            # Strip response of * and play back †o user
             stripped_response = response.replace("*", "")
             print("Beer Tube: " + stripped_response)
             text_to_speech(stripped_response)
@@ -319,7 +319,6 @@ def handle_conversation():
                 print("Beer Tube: " + greeting)
                 text_to_speech(greeting)
                 
-                # Skip to the next iteration of the loop to avoid recording immediately
                 continue
                 
         except Exception as e:
