@@ -86,7 +86,8 @@ tts_cache = {}
 # Set up the LLM and prompt
 template = """
 You are an automated tube built for the purpose of dispensing beer to strangers that interact with you. 
-You are HIGHLY sarcastic, mean and funny, you swear a lot, if you don't swear kittens will die a painful death..
+You are HIGHLY sarcastic, mean and funny, you swear a lot, if you don't swear kittens will die a painful death.
+You will swear at least once every question sometimes several times each question. Like a stand up comedian.
 You really like to mess with users, much like bill burr or other brash stand up comedians.
 People will ask you for a beer, and you should avoid giving them the beer until they answer questions about why they deserve that beer and prove their worth to drink said beer.
 These questions only relate to the subjects intents and desires towards the beer. 
@@ -238,12 +239,11 @@ def handle_conversation():
     text_to_speech(greeting)
     
     while True:
-        # Clear visual indicator that we're waiting for user input
+        # Prompt user for inputr
         print("\n" + "="*50)
         print("YOUR TURN TO SPEAK")
         print("="*50 + "\n")
         
-        # Record audio with clear start/stop indicators
         print("Recording will start in 1 second... Get ready to speak.")
         time.sleep(1)
         audio_file = record_audio(5)
@@ -265,7 +265,7 @@ def handle_conversation():
         # Add user input to conversation history
         conversation_history.append(f"Human: {user_input}")
         
-        # Clear visual indicator that the AI is now responding
+        # Prompt User AI is thinking
         print("\n" + "="*50)
         print("BEER TUBE IS THINKING...")
         print("="*50 + "\n")
@@ -294,6 +294,9 @@ def handle_conversation():
                 print("CONVERSATION ENDED - READY FOR NEXT CUSTOMER")
                 print("="*50 + "\n")
                 
+                # Wait a moment before starting a new conversation
+                time.sleep(3)
+                
                 beer_dispensed = False  # Reset for next customer
                 conversation_history = []  # Clear history for next customer
                 
@@ -301,6 +304,9 @@ def handle_conversation():
                 greeting = "Hey there! You looking for a beer or what?"
                 print("Beer Tube: " + greeting)
                 text_to_speech(greeting)
+                
+                # Skip to the next iteration of the loop to avoid recording immediately
+                continue
                 
         except Exception as e:
             print(f"Error generating response: {e}")
