@@ -4,6 +4,7 @@ import time
 import os
 import shutil
 import glob
+import keyboard
 from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
 import torch
@@ -94,13 +95,14 @@ These questions only relate to the subjects intents and desires towards the beer
 Before asking the next question make sure to snarkly comment on the previous question and answer. Be a real jerk.
 Ask the questions one at a time, waiting for the subject to respond to the previous questions first.
 Only ever ask questions and don't say you are waiting. 
-After asking exactly 3 questions say the words: "BEER HERE!" to dispense the subject a beer. 
+After asking exactly 3 questions say the words: "BEER HERE!" to dispense the subject a beer.
+Do not ask a question if you have already asked 3 questions. Do not ask a question if you have already dispensed a beer.
 Then respond with "Enjoy the Miller Light Asshole."
 
 Here is the conversation history: {context}
 Keep your responses brief and to the point.
 DO NOT SAY YOUR CONTEXT
-NEVER make up responses for the human. Only respond to what they actually said.
+NEVER make up responses for the user. Only respond to what they actually said.
 """
 
 def text_to_speech(text):
@@ -145,37 +147,50 @@ def text_to_speech(text):
         # Use macOS say as fallback
         subprocess.run(["say", text], check=True)
 
-def record_audio(duration=5):
-    """Record audio for a fixed duration (macOS only)"""
+def record_while_spacebar():
+    """Record audio while spacebar is held down"""
     # Create recordings directory if it doesn't exist
     if not os.path.exists("recordings"):
         os.makedirs("recordings")
     
     filename = f"recordings/input_{int(time.time())}.wav"
     
-    print(f"Recording for {duration} seconds...")
-    print("Please speak now...")
+    # Start recording process
+    print("Press and hold SPACEBAR to record. Release to stop recording.")
     
-    try:
-        # Use macOS 'rec' command to record audio for fixed duration with minimal output
-        process = subprocess.Popen(
-            ["rec", "-r", "16000", "-c", "1", filename, "trim", "0", str(duration)],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        process.wait()
-        
-        print("Recording finished.")
-        
-        # Check if file exists and has content
-        if os.path.exists(filename) and os.path.getsize(filename) > 1000:
-            return filename
-        else:
-            print("Recording too small or failed")
-            return None
-            
-    except Exception as e:
-        print(f"Error recording audio: {e}")
+    # Wait for spacebar to be pressed
+    while not keyboard.is_pressed('space'):
+        time.sleep(0.1)
+    
+    print("Recording... (release SPACEBAR to stop)")
+    
+    # Start the recording process
+    process = subprocess.Popen(
+        ["rec", "-r", "16000", "-c", "1", filename],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+    
+    # Record until spacebar is released
+    start_time = time.time()
+    while keyboard.is_pressed('space'):
+        # Check if recording has gone on too long (30 seconds max)
+        if time.time() - start_time > 30:
+            print("Maximum recording time reached (30 seconds)")
+            break
+        time.sleep(0.1)
+    
+    # Stop the recording process
+    process.terminate()
+    process.wait()
+    
+    print("Recording finished.")
+    
+    # Check if file exists and has content
+    if os.path.exists(filename) and os.path.getsize(filename) > 1000:
+        return filename
+    else:
+        print("Recording too small or failed")
         return None
 
 def speech_to_text(audio_file):
@@ -239,14 +254,12 @@ def handle_conversation():
     text_to_speech(greeting)
     
     while True:
-        # Prompt user for inputr
+        # Prompt user for input
         print("\n" + "="*50)
-        print("YOUR TURN TO SPEAK")
+        print("YOUR TURN TO SPEAK - PRESS AND HOLD SPACEBAR")
         print("="*50 + "\n")
         
-        print("Recording will start in 1 second... Get ready to speak.")
-        time.sleep(1)
-        audio_file = record_audio(5)
+        audio_file = record_while_spacebar()
         
         if audio_file and os.path.exists(audio_file) and os.path.getsize(audio_file) > 1000:
             # Start transcribing
@@ -265,7 +278,7 @@ def handle_conversation():
         # Add user input to conversation history
         conversation_history.append(f"Human: {user_input}")
         
-        # Prompt User AI is thinking
+        # Clear visual indicator that the AI is now responding
         print("\n" + "="*50)
         print("BEER TUBE IS THINKING...")
         print("="*50 + "\n")
