@@ -2,13 +2,13 @@ import warnings
 import subprocess
 import time
 import os
-import shutil
-import glob
 import keyboard
+import torch
+
 from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
-import torch
 from TTS.api import TTS
+from hellper_fuctions import cleanup_old_files
 
 # Filter out the specific FP16 warning from Whisper
 warnings.filterwarnings("ignore", message="FP16 is not supported on CPU; using FP32 instead")
@@ -287,50 +287,6 @@ def handle_conversation():
             greeting = "Sorry about that. Let's start over. You looking for a beer or what?"
             print("Beer Tube: " + greeting)
             text_to_speech(greeting)
-
-# Clean up old recordings, audio files, and transcript files
-def cleanup_old_files():
-    """Delete all recordings, AI output files, and transcript files at startup"""
-    print("Cleaning up old files...")
-    
-    # Clean up recordings directory
-    if os.path.exists("recordings"):
-        shutil.rmtree("recordings")
-        os.makedirs("recordings")
-    else:
-        os.makedirs("recordings")
-    
-    # Clean up audio directory
-    if os.path.exists("audio"):
-        shutil.rmtree("audio")
-        os.makedirs("audio")
-    else:
-        os.makedirs("audio")
-    
-    # Create transcipts folder
-    if not os.path.exists("transcripts"):
-        os.makedirs("transcripts")
-    else:
-        # Clean up existing transcript files
-        for file_ext in ['.vtt', '.srt', '.tsv', '.txt', '.json']:
-            for file in glob.glob(f"*.{file_ext}"):
-                try:
-                    # Move to transcripts folder then delete
-                    shutil.move(file, os.path.join("transcripts", os.path.basename(file)))
-                except Exception as e:
-                    print(f"Error moving {file}: {e}")
-        
-        # Now clean up the transcripts folder
-        for file in os.listdir("transcripts"):
-            file_path = os.path.join("transcripts", file)
-            try:
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-            except Exception as e:
-                print(f"Error deleting {file_path}: {e}")
-    
-    print("Cleanup complete.")
-
 
 if __name__ == "__main__":
     handle_conversation()
