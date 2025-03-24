@@ -3,3 +3,7 @@ audio
 recordings
 transcripts
 .DS_Store
+venv/
+pyvenv.cfg
+lib/
+bin/
