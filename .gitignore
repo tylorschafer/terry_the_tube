@@ -7,3 +7,4 @@ venv/
 pyvenv.cfg
 lib/
 bin/
+__pycache__/
