@@ -2,24 +2,37 @@ import shutil
 import os
 import glob
 
+def cleanup_directory(directory_name):
+    """Safely clean up a directory, handling permission errors"""
+    if os.path.exists(directory_name):
+        # Try to remove individual files first
+        try:
+            for filename in os.listdir(directory_name):
+                file_path = os.path.join(directory_name, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except PermissionError as e:
+                    print(f"Permission denied, skipping {file_path}: {e}")
+                except Exception as e:
+                    print(f"Error removing {file_path}: {e}")
+        except Exception as e:
+            print(f"Error accessing directory {directory_name}: {e}")
+    else:
+        os.makedirs(directory_name)
+
 # Clean up old recordings, audio files, and transcript files
 def cleanup_old_files():
     """Delete all recordings, AI output files, and transcript files at startup"""
     print("Cleaning up old files...")
     
     # Clean up recordings directory
-    if os.path.exists("recordings"):
-        shutil.rmtree("recordings")
-        os.makedirs("recordings")
-    else:
-        os.makedirs("recordings")
+    cleanup_directory("recordings")
     
-    # Clean up audio directory
-    if os.path.exists("audio"):
-        shutil.rmtree("audio")
-        os.makedirs("audio")
-    else:
-        os.makedirs("audio")
+    # Clean up audio directory  
+    cleanup_directory("audio")
     
     # Create transcipts folder
     if not os.path.exists("transcripts"):

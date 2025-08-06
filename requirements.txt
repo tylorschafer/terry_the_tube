@@ -4,3 +4,4 @@ langchain-core==0.3.35
 langchain-ollama==0.2.3
 TTS==0.22.0
 openai-whisper
+ 
