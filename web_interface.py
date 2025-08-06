@@ -47,30 +47,31 @@ class WebHandler(BaseHTTPRequestHandler):
                         margin: 0; 
                         padding: 20px;
                     }
-                    .container { max-width: 600px; margin: 0 auto; }
+                    .container { max-width: 1800px; margin: 0 auto; }
                     .title { 
                         text-align: center; 
                         color: #ffa500; 
-                        font-size: 24px; 
+                        font-size: 48px; 
                         margin-bottom: 20px;
                     }
                     .status { 
                         text-align: center; 
                         margin-bottom: 20px; 
-                        font-size: 14px;
+                        font-size: 20px;
                         color: #ccc;
                     }
                     .messages { 
                         background: #1e1e1e; 
-                        height: 300px; 
+                        height: 600px; 
                         overflow-y: scroll; 
                         padding: 15px; 
                         border-radius: 5px;
                         margin-bottom: 20px;
                     }
                     .message { 
-                        margin-bottom: 15px; 
+                        margin-bottom: 19px; 
                         line-height: 1.4;
+                        font-size: 30px;
                     }
                     .ai-message { color: #ffa500; }
                     .user-message { color: #4CAF50; }
