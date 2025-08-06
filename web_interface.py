@@ -26,11 +26,6 @@ class WebInterface:
     def set_status(self, status):
         """Update status"""
         self.status = status
-        
-    def clear_messages(self):
-        """Clear all messages"""
-        self.messages = []
-        self.add_message("Terry", "Hey there! You looking for a beer or what?", is_ai=True)
 
 class WebHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -92,15 +87,6 @@ class WebHandler(BaseHTTPRequestHandler):
                         margin-bottom: 10px;
                     }
                     .talk-button:active { background: #ff4444; }
-                    .clear-button {
-                        background: #f44336;
-                        color: white;
-                        border: none;
-                        padding: 8px 16px;
-                        border-radius: 3px;
-                        cursor: pointer;
-                        float: right;
-                    }
                 </style>
             </head>
             <body>
@@ -119,7 +105,6 @@ class WebHandler(BaseHTTPRequestHandler):
                             ontouchend="stopRecording()">
                         Hold Button to Talk
                     </button>
-                    <button class="clear-button" onclick="clearMessages()">Clear Messages</button>
                 </div>
                 
                 <script>
@@ -141,10 +126,6 @@ class WebHandler(BaseHTTPRequestHandler):
                             document.getElementById('talkButton').style.background = '#4CAF50';
                             fetch('/stop_recording', {method: 'POST'});
                         }
-                    }
-                    
-                    function clearMessages() {
-                        fetch('/clear_messages', {method: 'POST'});
                     }
                     
                     function updateInterface() {
@@ -201,9 +182,6 @@ class WebHandler(BaseHTTPRequestHandler):
                     args=('stop_recording',), 
                     daemon=True
                 ).start()
-                
-        elif self.path == '/clear_messages':
-            self.server.web_interface.clear_messages()
             
         self.send_response(200)
         self.end_headers()
