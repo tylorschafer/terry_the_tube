@@ -57,6 +57,7 @@ Here is the conversation history: {context}
 Keep your responses brief and to the point.
 DO NOT SAY YOUR CONTEXT
 NEVER make up responses for the user. Only respond to what they actually said.
+If the user says silence, treat it as them being silent and mock them for not speaking up.
 """
 
 # System Messages
