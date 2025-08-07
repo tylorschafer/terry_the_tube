@@ -15,6 +15,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.terry_app import TerryTubeApp
+from src.utils.display import display
 
 
 def main():
@@ -53,16 +54,16 @@ Examples:
         if args.info:
             # Show system information
             info = app.get_system_info()
-            print("\n" + "="*50)
-            print("TERRY THE TUBE - SYSTEM INFORMATION")
-            print("="*50)
-            print(f"Web Mode: {info['web_mode']}")
-            print(f"AI Available: {info['ai_available']}")
-            print(f"TTS Model: {info['audio']['tts_model']}")
-            print(f"TTS Available: {info['audio']['tts_available']}")
-            print(f"STT Model: {info['audio']['stt_model']['model']}")
-            print(f"STT Available: {info['audio']['stt_available']}")
-            print("="*50 + "\n")
+            display.header("System Information")
+            
+            system_info = {
+                "Web Mode": {"available": True, "value": info['web_mode']},
+                "AI Available": {"available": info['ai_available'], "value": info['ai_available']},
+                "TTS Model": {"available": info['audio']['tts_available'], "value": info['audio']['tts_model']},
+                "STT Model": {"available": info['audio']['stt_available'], "value": info['audio']['stt_model']['model']}
+            }
+            
+            display.system_info(system_info)
             return
         
         # Run the application
@@ -72,10 +73,10 @@ Examples:
             app.run_web_mode()
             
     except KeyboardInterrupt:
-        print("\nShutting down Terry the Tube...")
+        display.warning("\nShutting down Terry the Tube...")
     except Exception as e:
-        print(f"Fatal error: {e}")
-        print("Please check that all dependencies are installed and Ollama is running.")
+        display.error(f"Fatal error: {e}")
+        display.error("Please check that all dependencies are installed and Ollama is running.")
         sys.exit(1)
 
 

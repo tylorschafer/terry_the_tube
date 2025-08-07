@@ -8,6 +8,7 @@ import shutil
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from config import RECORDINGS_DIR, TRANSCRIPTS_DIR, TRANSCRIPT_EXTENSIONS
+from .display import display
 
 
 class FileCleanup:
@@ -19,15 +20,11 @@ class FileCleanup:
     
     def cleanup_all_files(self):
         """Clean up transcript files at startup (preserves all session data)"""
-        print("Cleaning up old files...")
-        
         # Handle transcripts specially
         self._cleanup_transcripts()
         
         # Ensure recordings directory exists (but don't clean it)
         self._ensure_recordings_directory_exists()
-        
-        print("Cleanup complete.")
     
     def cleanup_recordings(self):
         """Clean up recordings directory (call this manually when needed)"""
@@ -39,7 +36,6 @@ class FileCleanup:
         """Ensure recordings directory exists without cleaning it"""
         if not os.path.exists(self.recordings_directory):
             os.makedirs(self.recordings_directory)
-            print(f"Created recordings directory: {self.recordings_directory}")
     
     def _cleanup_directory(self, directory_name):
         """Safely clean up a directory, handling permission errors"""

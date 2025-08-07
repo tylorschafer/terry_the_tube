@@ -11,6 +11,7 @@ from audio.audio_manager import AudioManager
 from web.web_interface import WebInterface
 from web.web_server import start_web_server
 from utils.cleanup import FileCleanup
+from utils.display import display
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -41,25 +42,28 @@ class TerryTubeApp:
     def _initialize_components(self):
         """Initialize all core components"""
         try:
-            print("Initializing Terry the Tube components...")
+            display.section("Initializing Components")
             
             # Initialize audio manager
+            display.component_init("Audio Manager")
             self.audio_manager = AudioManager()
             
             # Initialize AI handler
+            display.component_init("AI Handler")
             self.ai_handler = AIHandler()
             
             # Initialize conversation manager
+            display.component_init("Conversation Manager")
             self.conversation_manager = ConversationManager(
                 self.ai_handler, 
                 self.audio_manager,
                 self.web_interface
             )
             
-            print("All components initialized successfully!")
+            display.success("All components initialized successfully!")
             
         except Exception as e:
-            print(f"Error initializing components: {e}")
+            display.error(f"Error initializing components: {e}")
             raise
     
     def handle_web_action(self, action):
@@ -105,17 +109,17 @@ class TerryTubeApp:
         """Process user input from audio file"""
         self._set_status("Transcribing your speech...")
         
-        print("Transcribing your speech...")
+        display.transcribing()
         user_input = self.audio_manager.speech_to_text(audio_file)
         
         # Handle display of user input
         if user_input == "":
             # Show silence in the interface but pass empty string to bot
             display_message = "silence"
-            print("You (transcribed): silence")
+            display.user_input("", is_silence=True)
         else:
             display_message = user_input
-            print(f"You (transcribed): {user_input}")
+            display.user_input(user_input)
             
         self._add_message("You", display_message, is_ai=False)
         
@@ -123,7 +127,7 @@ class TerryTubeApp:
         if user_input == STT_TECHNICAL_ERROR:
             self._set_status(TRANSCRIPTION_FAILED_ERROR)
             if not self.use_web_gui:
-                print("Failed to understand your speech. Please type your response:")
+                display.error("Failed to understand your speech. Please type your response:")
                 user_input = input("You: ")
         
         # Process the input through conversation manager (including empty strings)
@@ -132,11 +136,13 @@ class TerryTubeApp:
     
     def run_web_mode(self):
         """Run the application with web interface"""
-        print("Terry the Tube activated! Starting web interface...")
+        display.header("Terry the Tube - Web Mode")
         
         # Clean up old files
         cleanup = FileCleanup()
+        display.cleanup_start()
         cleanup.cleanup_all_files()
+        display.cleanup_complete()
         
         try:
             # Update conversation manager with web interface
@@ -146,20 +152,23 @@ class TerryTubeApp:
             self.conversation_manager.start_conversation()
             
             # Start web server (blocking)
+            display.info(f"Web interface started at: http://localhost:8080")
             start_web_server(self.web_interface)
             
         except Exception as e:
-            print(f"Web interface failed: {e}")
-            print("Falling back to terminal mode...")
+            display.error(f"Web interface failed: {e}")
+            display.warning("Falling back to terminal mode...")
             self.run_terminal_mode()
     
     def run_terminal_mode(self):
         """Run the application in terminal-only mode"""
-        print("Terry the Tube activated! Ready to interact with humans.")
+        display.header("Terry the Tube - Terminal Mode")
         
         # Clean up old files
         cleanup = FileCleanup()
+        display.cleanup_start()
         cleanup.cleanup_all_files()
+        display.cleanup_complete()
         
         # Start conversation
         self.conversation_manager.start_conversation()
@@ -167,25 +176,26 @@ class TerryTubeApp:
         # Main conversation loop
         while True:
             try:
-                print("\n" + "="*50)
-                print("YOUR TURN TO SPEAK - PRESS AND HOLD SPACEBAR")
-                print("="*50 + "\n")
+                display.separator()
+                display.recording_start()
                 
                 audio_file = self.audio_manager.record_while_spacebar()
                 
                 if audio_file:
+                    display.recording_stop()
                     self.process_user_input(audio_file)
                 else:
-                    print("Recording failed or was too quiet. Please type your response:")
+                    display.warning("Recording failed or was too quiet. Please type your response:")
                     user_input = input("You: ")
+                    display.user_input(user_input)
                     self.conversation_manager.add_user_message(user_input)
                     self.conversation_manager.generate_and_handle_response()
                     
             except KeyboardInterrupt:
-                print("\nShutting down Terry the Tube...")
+                display.warning("\nShutting down Terry the Tube...")
                 break
             except Exception as e:
-                print(f"Error in conversation loop: {e}")
+                display.error(f"Error in conversation loop: {e}")
                 continue
     
     def _add_message(self, sender, message, is_ai=False):
