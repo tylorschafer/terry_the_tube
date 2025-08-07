@@ -43,7 +43,7 @@ class AIHandler:
             # Add question count information to context
             context += f"\n\nCURRENT QUESTION NUMBER: {question_count} (out of 3 maximum)"
             if question_count >= 3:
-                context += "\nYou've already asked 3 questions, now say 'BEER HERE! Enjoy the Miller Light, Asshole.'"
+                context += "\nYou've already asked 3 questions."
             
             response = self.chain.invoke({"context": context})
             return response.strip()
