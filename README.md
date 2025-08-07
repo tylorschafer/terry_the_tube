@@ -4,9 +4,9 @@ Terry the Tube is an AI-powered beer dispensing system that combines speech reco
 
 ## Features
 
-- **Sarcastic AI Personality**: Bill Burr-style humor and attitude
+- **Multiple AI Personalities**: Choose from 'Agressively Sarcastic Wanna Be Comedian' to 'Passively Bodering on Agressivesive Librarian'
 - **Voice Interaction**: Speech-to-text input and text-to-speech responses
-- **Question-Based Beer Dispensing**: Users must answer 3 questions correctly
+- **Question-Based Beer Dispensing**: Users must answer 3 questions
 - **Dual Interface**: Both terminal and web modes available
 - **High-Quality Audio**: Advanced TTS with multiple model support
 - **Real-time Processing**: Live audio transcription and response generation
