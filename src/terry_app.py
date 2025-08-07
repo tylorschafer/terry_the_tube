@@ -73,6 +73,10 @@ class TerryTubeApp:
         """Start recording audio"""
         if not self.recording_in_progress:
             self.recording_in_progress = True
+            
+            # Prepare session folder before starting recording
+            self.conversation_manager.prepare_session_if_needed()
+            
             if self.use_web_gui:
                 self.current_audio_file = self.audio_manager.start_web_recording()
             else:
@@ -104,17 +108,25 @@ class TerryTubeApp:
         print("Transcribing your speech...")
         user_input = self.audio_manager.speech_to_text(audio_file)
         
-        self._add_message("You", user_input, is_ai=False)
-        print(f"You (transcribed): {user_input}")
+        # Handle display of user input
+        if user_input == "":
+            # Show silence in the interface but pass empty string to bot
+            display_message = "silence"
+            print("You (transcribed): silence")
+        else:
+            display_message = user_input
+            print(f"You (transcribed): {user_input}")
+            
+        self._add_message("You", display_message, is_ai=False)
         
-        # Handle transcription errors
-        if user_input in [STT_ERROR_MESSAGE, STT_TECHNICAL_ERROR]:
+        # Handle technical transcription errors (but allow empty strings for silence)
+        if user_input == STT_TECHNICAL_ERROR:
             self._set_status(TRANSCRIPTION_FAILED_ERROR)
             if not self.use_web_gui:
                 print("Failed to understand your speech. Please type your response:")
                 user_input = input("You: ")
         
-        # Process the input through conversation manager
+        # Process the input through conversation manager (including empty strings)
         self.conversation_manager.add_user_message(user_input)
         self.conversation_manager.generate_and_handle_response()
     
