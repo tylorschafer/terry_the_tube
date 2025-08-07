@@ -73,6 +73,10 @@ class TerryTubeApp:
         """Start recording audio"""
         if not self.recording_in_progress:
             self.recording_in_progress = True
+            
+            # Prepare session folder before starting recording
+            self.conversation_manager.prepare_session_if_needed()
+            
             if self.use_web_gui:
                 self.current_audio_file = self.audio_manager.start_web_recording()
             else:

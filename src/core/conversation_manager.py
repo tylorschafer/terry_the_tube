@@ -4,12 +4,12 @@ Handles conversation flow, state, and beer dispensing logic
 """
 import time
 import threading
-import sys
 import os
+import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from config import (
     GREETING_MESSAGE, EXIT_STRING, BEER_DISPENSED_TRIGGER, 
-    BEER_DISPENSED_MESSAGE, CONVERSATION_ENDED_MESSAGE
+    BEER_DISPENSED_MESSAGE, CONVERSATION_ENDED_MESSAGE, RECORDINGS_DIR
 )
 
 
@@ -23,6 +23,8 @@ class ConversationManager:
         self.beer_dispensed = False
         self.conversation_active = True
         self.question_count = 1  # Start at 1 since greeting is question 1
+        self.current_session_folder = None
+        self.first_user_message_timestamp = None
     
     def start_conversation(self):
         """Start a new conversation with greeting"""
@@ -30,6 +32,8 @@ class ConversationManager:
         self.beer_dispensed = False
         self.conversation_active = True
         self.question_count = 1  # Reset to 1 since greeting is question 1
+        self.current_session_folder = None
+        self.first_user_message_timestamp = None
         
         print("Beer Tube: " + GREETING_MESSAGE)
         
@@ -41,9 +45,35 @@ class ConversationManager:
         
         self.audio_handler.text_to_speech(GREETING_MESSAGE)
     
+    def prepare_session_if_needed(self):
+        """Create session folder if this is the first user interaction"""
+        if self.first_user_message_timestamp is None:
+            self.first_user_message_timestamp = time.strftime("%Y%m%d_%H%M%S")
+            self.current_session_folder = os.path.join(RECORDINGS_DIR, self.first_user_message_timestamp)
+            self._create_session_folder()
+    
     def add_user_message(self, message):
         """Add user message to conversation history"""
         self.conversation_history.append(f"Human: {message}")
+        
+        # Ensure session is prepared (this will be a no-op if already done)
+        self.prepare_session_if_needed()
+    
+    def _create_session_folder(self):
+        """Create folder for current conversation session"""
+        if self.current_session_folder and not os.path.exists(self.current_session_folder):
+            os.makedirs(self.current_session_folder)
+            print(f"Created session folder: {self.current_session_folder}")
+            
+            # Update audio handler to use this session folder for both recording and TTS
+            if hasattr(self.audio_handler, 'set_recording_session_folder'):
+                self.audio_handler.set_recording_session_folder(self.current_session_folder)
+            if hasattr(self.audio_handler, 'set_tts_session_folder'):
+                self.audio_handler.set_tts_session_folder(self.current_session_folder)
+    
+    def get_current_session_folder(self):
+        """Get the current session folder path"""
+        return self.current_session_folder
     
     def generate_and_handle_response(self):
         """Generate AI response and handle special commands"""
@@ -118,6 +148,8 @@ class ConversationManager:
         # Reset conversation
         self.conversation_history = []
         self.question_count = 1  # Reset question count
+        self.current_session_folder = None
+        self.first_user_message_timestamp = None
         print("Restarting conversation...")
         
         recovery_message = "Sorry about that. Let's start over. You looking for a beer or what?"
@@ -145,3 +177,5 @@ class ConversationManager:
         self.beer_dispensed = False
         self.conversation_active = True
         self.question_count = 1  # Reset question count
+        self.current_session_folder = None
+        self.first_user_message_timestamp = None
