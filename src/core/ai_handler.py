@@ -26,10 +26,15 @@ class AIHandler:
             print("Please make sure Ollama is running and the model is available")
             raise
     
-    def generate_response(self, conversation_history):
-        """Generate AI response based on conversation history"""
+    def generate_response(self, conversation_history, question_count=1):
+        """Generate AI response based on conversation history and question count"""
         try:
             context = "\n".join(conversation_history)
+            # Add question count information to context
+            context += f"\n\nCURRENT QUESTION NUMBER: {question_count} (out of 3 maximum)"
+            if question_count >= 3:
+                context += "\nYou've already asked 3 questions, now say 'BEER HERE! Enjoy the Miller Light, Asshole.'"
+            
             response = self.chain.invoke({"context": context})
             return response.strip()
         except Exception as e:

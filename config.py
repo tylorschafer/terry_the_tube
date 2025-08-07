@@ -10,9 +10,9 @@ OLLAMA_TIMEOUT = 6
 
 # TTS Model Configuration
 TTS_MODELS_TO_TRY = [
-    "tts_models/en/ljspeech/neural_hmm",
     "tts_models/en/ljspeech/tacotron2-DDC",
     "tts_models/en/vctk/vits",
+    "tts_models/en/ljspeech/neural_hmm",
     "tts_models/en/ljspeech/fast_pitch",
     "tts_models/en/ljspeech/glow-tts"
 ]

@@ -22,12 +22,14 @@ class ConversationManager:
         self.conversation_history = []
         self.beer_dispensed = False
         self.conversation_active = True
+        self.question_count = 1  # Start at 1 since greeting is question 1
     
     def start_conversation(self):
         """Start a new conversation with greeting"""
         self.conversation_history = []
         self.beer_dispensed = False
         self.conversation_active = True
+        self.question_count = 1  # Reset to 1 since greeting is question 1
         
         print("Beer Tube: " + GREETING_MESSAGE)
         self.audio_handler.text_to_speech(GREETING_MESSAGE)
@@ -46,8 +48,12 @@ class ConversationManager:
             return
         
         try:
-            response = self.ai_handler.generate_response(self.conversation_history)
+            # Increment question count after user responds            
+            response = self.ai_handler.generate_response(self.conversation_history, self.question_count)
             self.conversation_history.append(f"AI: {response}")
+
+            if len(self.conversation_history) > 0:  # Don't increment on first greeting
+                self.question_count += 1
             
             # Clean response of asterisks
             cleaned_response = response.replace("*", "")
@@ -104,6 +110,7 @@ class ConversationManager:
         
         # Reset conversation
         self.conversation_history = []
+        self.question_count = 1  # Reset question count
         print("Restarting conversation...")
         
         recovery_message = "Sorry about that. Let's start over. You looking for a beer or what?"
@@ -127,3 +134,4 @@ class ConversationManager:
         self.conversation_history = []
         self.beer_dispensed = False
         self.conversation_active = True
+        self.question_count = 1  # Reset question count
