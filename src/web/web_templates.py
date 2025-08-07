@@ -409,16 +409,7 @@ def get_main_html_template():
                     </div>
                 </div>
                 <div class="messages" id="messages">
-                    <div class="message ai-message">
-                        <div class="message-bubble">
-                            Hey there! You looking for a beer or what?
-                        </div>
-                        <div class="message-info">
-                            <i class="fas fa-robot"></i>
-                            <span class="timestamp">00:00:00</span>
-                            <span>Terry</span>
-                        </div>
-                    </div>
+                    <!-- Messages will be added dynamically -->
                 </div>
             </div>
             
@@ -463,36 +454,77 @@ def get_main_html_template():
                 }
             }
             
+            let lastMessageCount = 0;
+            let lastStatus = '';
+            
             function updateInterface() {
                 fetch('/status')
                     .then(response => response.json())
                     .then(data => {
-                        const statusElement = document.getElementById('status');
-                        const icon = getStatusIcon(data.status);
-                        statusElement.innerHTML = `<i class="${icon}"></i><span>${data.status}</span>`;
+                        // Only update status if it changed
+                        if (data.status !== lastStatus) {
+                            const statusElement = document.getElementById('status');
+                            const icon = getStatusIcon(data.status);
+                            statusElement.innerHTML = `<i class="${icon}"></i><span>${data.status}</span>`;
+                            lastStatus = data.status;
+                        }
                         
-                        const messagesDiv = document.getElementById('messages');
-                        messagesDiv.innerHTML = '';
+                        // Only update messages if new ones were added
+                        if (data.messages.length > lastMessageCount) {
+                            const messagesDiv = document.getElementById('messages');
+                            
+                            // Only add new messages, don't rebuild entire list
+                            for (let i = lastMessageCount; i < data.messages.length; i++) {
+                                const msg = data.messages[i];
+                                const messageDiv = document.createElement('div');
+                                messageDiv.className = 'message ' + (msg.is_ai ? 'ai-message' : 'user-message');
+                                
+                                const bubble = document.createElement('div');
+                                bubble.className = 'message-bubble';
+                                bubble.textContent = msg.message;
+                                
+                                const info = document.createElement('div');
+                                info.className = 'message-info';
+                                const userIcon = msg.is_ai ? 'fas fa-robot' : 'fas fa-user';
+                                info.innerHTML = `<i class="${userIcon}"></i><span class="timestamp">${msg.timestamp}</span><span>${msg.sender}</span>`;
+                                
+                                messageDiv.appendChild(bubble);
+                                messageDiv.appendChild(info);
+                                messagesDiv.appendChild(messageDiv);
+                            }
+                            
+                            lastMessageCount = data.messages.length;
+                            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        }
                         
-                        data.messages.forEach(msg => {
-                            const messageDiv = document.createElement('div');
-                            messageDiv.className = 'message ' + (msg.is_ai ? 'ai-message' : 'user-message');
+                        // Handle message clearing (when count goes down)
+                        if (data.messages.length < lastMessageCount) {
+                            const messagesDiv = document.getElementById('messages');
+                            messagesDiv.innerHTML = '';
+                            lastMessageCount = 0;
                             
-                            const bubble = document.createElement('div');
-                            bubble.className = 'message-bubble';
-                            bubble.textContent = msg.message;
+                            // Re-add all messages
+                            data.messages.forEach(msg => {
+                                const messageDiv = document.createElement('div');
+                                messageDiv.className = 'message ' + (msg.is_ai ? 'ai-message' : 'user-message');
+                                
+                                const bubble = document.createElement('div');
+                                bubble.className = 'message-bubble';
+                                bubble.textContent = msg.message;
+                                
+                                const info = document.createElement('div');
+                                info.className = 'message-info';
+                                const userIcon = msg.is_ai ? 'fas fa-robot' : 'fas fa-user';
+                                info.innerHTML = `<i class="${userIcon}"></i><span class="timestamp">${msg.timestamp}</span><span>${msg.sender}</span>`;
+                                
+                                messageDiv.appendChild(bubble);
+                                messageDiv.appendChild(info);
+                                messagesDiv.appendChild(messageDiv);
+                            });
                             
-                            const info = document.createElement('div');
-                            info.className = 'message-info';
-                            const userIcon = msg.is_ai ? 'fas fa-robot' : 'fas fa-user';
-                            info.innerHTML = `<i class="${userIcon}"></i><span class="timestamp">${msg.timestamp}</span><span>${msg.sender}</span>`;
-                            
-                            messageDiv.appendChild(bubble);
-                            messageDiv.appendChild(info);
-                            messagesDiv.appendChild(messageDiv);
-                        });
-                        
-                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                            lastMessageCount = data.messages.length;
+                            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        }
                     })
                     .catch(error => console.log('Status update failed:', error));
             }

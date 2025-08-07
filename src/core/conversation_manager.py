@@ -32,11 +32,14 @@ class ConversationManager:
         self.question_count = 1  # Reset to 1 since greeting is question 1
         
         print("Beer Tube: " + GREETING_MESSAGE)
-        self.audio_handler.text_to_speech(GREETING_MESSAGE)
         
         if self.web_interface:
             self.web_interface.add_message("Terry", GREETING_MESSAGE, is_ai=True)
             self.web_interface.set_status("Ready to serve beer!")
+            # Small delay to ensure message appears before audio starts
+            time.sleep(0.1)
+        
+        self.audio_handler.text_to_speech(GREETING_MESSAGE)
     
     def add_user_message(self, message):
         """Add user message to conversation history"""
@@ -59,10 +62,14 @@ class ConversationManager:
             cleaned_response = response.replace("*", "")
             
             print("Beer Tube: " + cleaned_response)
-            self.audio_handler.text_to_speech(cleaned_response)
             
+            # Add message to web interface FIRST, then play audio
             if self.web_interface:
                 self.web_interface.add_message("Terry", cleaned_response, is_ai=True)
+                # Small delay to ensure message appears before audio starts
+                time.sleep(0.1)
+            
+            self.audio_handler.text_to_speech(cleaned_response)
             
             # Handle beer dispensing
             if BEER_DISPENSED_TRIGGER in response and not self.beer_dispensed:
@@ -115,11 +122,14 @@ class ConversationManager:
         
         recovery_message = "Sorry about that. Let's start over. You looking for a beer or what?"
         print("Beer Tube: " + recovery_message)
-        self.audio_handler.text_to_speech(recovery_message)
         
         if self.web_interface:
             self.web_interface.add_message("Terry", recovery_message, is_ai=True)
             self.web_interface.set_status("Ready to serve beer!")
+            # Small delay to ensure message appears before audio starts
+            time.sleep(0.1)
+        
+        self.audio_handler.text_to_speech(recovery_message)
     
     def is_conversation_active(self):
         """Check if conversation is currently active"""
