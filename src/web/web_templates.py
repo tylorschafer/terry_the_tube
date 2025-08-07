@@ -653,6 +653,20 @@ def get_main_html_template():
                 });
             }
             
+            function resetPersonalitySelection() {
+                // Reset dropdown selection
+                const dropdown = document.getElementById('personalityDropdown');
+                dropdown.value = '';
+                
+                // Reset button state
+                const confirmBtn = document.getElementById('confirmPersonalityBtn');
+                confirmBtn.textContent = 'Start Your Beer Journey';
+                confirmBtn.disabled = true;
+                
+                // Reset selected personality
+                selectedPersonality = null;
+            }
+            
             function updateInterface() {
                 fetch('/status')
                     .then(response => response.json())
@@ -734,6 +748,10 @@ def get_main_html_template():
                         } else if (!data.personality_selected) {
                             // Show overlay if no personality selected
                             overlay.classList.remove('hidden');
+                            // Reset dropdown and button for new cycle
+                            resetPersonalitySelection();
+                            // Reset personality display to default
+                            personalityDisplay.textContent = 'Your AI Bartender';
                         }
                     })
                     .catch(error => console.log('Status update failed:', error));

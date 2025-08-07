@@ -138,14 +138,19 @@ class ConversationManager:
         
         if self.web_interface:
             self.web_interface.set_status(CONVERSATION_ENDED_MESSAGE)
-            # Clear messages after a delay
-            threading.Timer(3.0, self.web_interface.clear_messages).start()
-        
-        # Wait before starting new conversation
-        time.sleep(3)
-        
-        # Reset and start new conversation
-        self.start_conversation()
+            # Clear messages and reset personality selection after delay
+            threading.Timer(3.0, self._prepare_next_cycle).start()
+        else:
+            # Terminal mode - wait and restart automatically
+            time.sleep(3)
+            self.start_conversation()
+    
+    def _prepare_next_cycle(self):
+        """Prepare for next conversation cycle in web mode"""
+        if self.web_interface:
+            self.web_interface.clear_messages()
+            self.web_interface.reset_personality_selection()
+            self.web_interface.set_status("Select a personality to continue")
     
     def handle_error_recovery(self):
         """Handle errors by restarting conversation"""

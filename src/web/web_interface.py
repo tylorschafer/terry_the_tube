@@ -66,3 +66,8 @@ class WebInterface:
     def is_personality_selected(self):
         """Check if personality has been selected by user (not just set by system)"""
         return self.personality_selected_by_user
+    
+    def reset_personality_selection(self):
+        """Reset personality selection to show overlay for next cycle"""
+        self.personality_selected_by_user = False
+        # Keep the current personality info but mark as not user-selected
