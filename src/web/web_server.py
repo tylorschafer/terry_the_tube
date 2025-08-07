@@ -6,6 +6,10 @@ import json
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from .web_templates import get_main_html_template
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from src.personalities import get_personality_names
 
 
 class WebHandler(BaseHTTPRequestHandler):
@@ -15,6 +19,8 @@ class WebHandler(BaseHTTPRequestHandler):
             self._serve_main_page()
         elif self.path == '/status':
             self._serve_status()
+        elif self.path == '/personalities':
+            self._serve_personalities()
         else:
             self._serve_404()
             
@@ -24,6 +30,8 @@ class WebHandler(BaseHTTPRequestHandler):
             self._handle_start_recording()
         elif self.path == '/stop_recording':
             self._handle_stop_recording()
+        elif self.path == '/select_personality':
+            self._handle_select_personality()
         else:
             self._serve_404()
     
@@ -44,7 +52,9 @@ class WebHandler(BaseHTTPRequestHandler):
         
         data = {
             'status': self.server.web_interface.get_status(),
-            'messages': self.server.web_interface.get_messages()
+            'messages': self.server.web_interface.get_messages(),
+            'personality': self.server.web_interface.get_personality_info(),
+            'personality_selected': self.server.web_interface.is_personality_selected()
         }
         self.wfile.write(json.dumps(data).encode())
     
@@ -67,6 +77,36 @@ class WebHandler(BaseHTTPRequestHandler):
                 daemon=True
             ).start()
         self._send_ok_response()
+    
+    def _serve_personalities(self):
+        """Serve available personalities JSON"""
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        
+        personalities = get_personality_names()
+        data = {'personalities': [{'key': key, 'name': name} for key, name in personalities]}
+        self.wfile.write(json.dumps(data).encode())
+    
+    def _handle_select_personality(self):
+        """Handle personality selection request"""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            if 'personality' in data:
+                self.server.web_interface.handle_action('change_personality', data)
+                self._send_ok_response()
+            else:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(b"Missing personality parameter")
+                
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(f"Error: {str(e)}".encode())
     
     def _send_ok_response(self):
         """Send simple OK response"""

@@ -25,9 +25,10 @@ warnings.filterwarnings("ignore", message="FP16 is not supported on CPU; using F
 
 
 class TerryTubeApp:
-    def __init__(self, use_web_gui=True):
+    def __init__(self, use_web_gui=True, personality_key=None):
         """Initialize Terry the Tube application"""
         self.use_web_gui = use_web_gui
+        self.personality_key = personality_key
         self.web_interface = None
         self.recording_in_progress = False
         self.current_audio_file = None
@@ -38,6 +39,11 @@ class TerryTubeApp:
         # Setup web interface if needed
         if self.use_web_gui:
             self.web_interface = WebInterface(message_callback=self.handle_web_action)
+            # Set initial personality info
+            if self.ai_handler:
+                # If personality was explicitly provided, mark as user-selected to skip overlay
+                user_selected = self.personality_key is not None
+                self.web_interface.set_personality(self.ai_handler.get_personality_info(), selected_by_user=user_selected)
     
     def _initialize_components(self):
         """Initialize all core components"""
@@ -48,9 +54,9 @@ class TerryTubeApp:
             display.component_init("Audio Manager")
             self.audio_manager = AudioManager()
             
-            # Initialize AI handler
+            # Initialize AI handler with personality
             display.component_init("AI Handler")
-            self.ai_handler = AIHandler()
+            self.ai_handler = AIHandler(personality_key=self.personality_key)
             
             # Initialize conversation manager
             display.component_init("Conversation Manager")
@@ -66,12 +72,15 @@ class TerryTubeApp:
             display.error(f"Error initializing components: {e}")
             raise
     
-    def handle_web_action(self, action):
+    def handle_web_action(self, action, data=None):
         """Handle actions from the web interface"""
         if action == 'start_recording':
             self.start_recording()
         elif action == 'stop_recording':
             self.stop_recording()
+        elif action == 'change_personality':
+            if data and 'personality' in data:
+                self.change_personality(data['personality'])
     
     def start_recording(self):
         """Start recording audio"""
@@ -148,8 +157,9 @@ class TerryTubeApp:
             # Update conversation manager with web interface
             self.conversation_manager.web_interface = self.web_interface
             
-            # Start conversation
-            self.conversation_manager.start_conversation()
+            # Only start conversation if personality was explicitly selected (via CLI or user selection)
+            if self.web_interface.is_personality_selected():
+                self.conversation_manager.start_conversation()
             
             # Start web server (blocking)
             display.info(f"Web interface started at: http://localhost:8080")
@@ -208,13 +218,45 @@ class TerryTubeApp:
         if self.web_interface:
             self.web_interface.set_status(status)
     
+    def change_personality(self, personality_key):
+        """Change the AI personality"""
+        try:
+            # Reinitialize AI handler with new personality
+            self.ai_handler = AIHandler(personality_key=personality_key)
+            
+            # Update conversation manager with new AI handler
+            self.conversation_manager.ai_handler = self.ai_handler
+            
+            # Store the current personality key
+            self.personality_key = personality_key
+            
+            # Update web interface with new personality info (marked as user-selected)
+            if self.web_interface:
+                self.web_interface.set_personality(self.ai_handler.get_personality_info(), selected_by_user=True)
+            
+            # Restart conversation with new personality
+            self.conversation_manager.start_conversation()
+            
+            display.success(f"Personality changed to: {self.ai_handler.get_personality_info()['name']}")
+            
+        except Exception as e:
+            display.error(f"Failed to change personality: {e}")
+    
+    def get_personality_info(self):
+        """Get current personality information"""
+        if self.ai_handler:
+            return self.ai_handler.get_personality_info()
+        return None
+    
     def get_system_info(self):
         """Get system information for debugging"""
         audio_info = self.audio_manager.get_system_info()
         ai_available = self.ai_handler.is_model_available()
+        personality_info = self.get_personality_info()
         
         return {
             "audio": audio_info,
             "ai_available": ai_available,
-            "web_mode": self.use_web_gui
+            "web_mode": self.use_web_gui,
+            "personality": personality_info
         }

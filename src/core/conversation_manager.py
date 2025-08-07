@@ -8,7 +8,7 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from config import (
-    GREETING_MESSAGE, EXIT_STRING, BEER_DISPENSED_TRIGGER, 
+    BEER_DISPENSED_TRIGGER, 
     BEER_DISPENSED_MESSAGE, CONVERSATION_ENDED_MESSAGE, RECORDINGS_DIR
 )
 from utils.display import display
@@ -36,16 +36,19 @@ class ConversationManager:
         self.current_session_folder = None
         self.first_user_message_timestamp = None
         
-        display.bot_response(GREETING_MESSAGE, question_num=1)
+        # Get personality-specific greeting
+        greeting_message = self.ai_handler.get_greeting_message()
+        
+        display.bot_response(greeting_message, question_num=1)
         display.speaking()
         
         if self.web_interface:
-            self.web_interface.add_message("Terry", GREETING_MESSAGE, is_ai=True)
+            self.web_interface.add_message("Terry", greeting_message, is_ai=True)
             self.web_interface.set_status("Ready to serve beer!")
             # Small delay to ensure message appears before audio starts
             time.sleep(0.1)
         
-        self.audio_handler.text_to_speech(GREETING_MESSAGE)
+        self.audio_handler.text_to_speech(greeting_message)
     
     def prepare_session_if_needed(self):
         """Create session folder if this is the first user interaction"""
@@ -112,8 +115,9 @@ class ConversationManager:
             if BEER_DISPENSED_TRIGGER in response and not self.beer_dispensed:
                 self.dispense_beer()
             
-            # Handle conversation end
-            if EXIT_STRING in response:
+            # Handle conversation end - use personality-specific exit string
+            exit_string = self.ai_handler.get_exit_string()
+            if exit_string in response:
                 self.end_conversation()
                 
         except Exception as e:
