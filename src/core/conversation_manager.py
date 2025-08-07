@@ -11,6 +11,7 @@ from config import (
     GREETING_MESSAGE, EXIT_STRING, BEER_DISPENSED_TRIGGER, 
     BEER_DISPENSED_MESSAGE, CONVERSATION_ENDED_MESSAGE, RECORDINGS_DIR
 )
+from utils.display import display
 
 
 class ConversationManager:
@@ -35,7 +36,8 @@ class ConversationManager:
         self.current_session_folder = None
         self.first_user_message_timestamp = None
         
-        print("Beer Tube: " + GREETING_MESSAGE)
+        display.bot_response(GREETING_MESSAGE, question_num=1)
+        display.speaking()
         
         if self.web_interface:
             self.web_interface.add_message("Terry", GREETING_MESSAGE, is_ai=True)
@@ -63,7 +65,7 @@ class ConversationManager:
         """Create folder for current conversation session"""
         if self.current_session_folder and not os.path.exists(self.current_session_folder):
             os.makedirs(self.current_session_folder)
-            print(f"Created session folder: {self.current_session_folder}")
+            display.session_start(self.first_user_message_timestamp)
             
             # Update audio handler to use this session folder for both recording and TTS
             if hasattr(self.audio_handler, 'set_recording_session_folder'):
@@ -81,6 +83,10 @@ class ConversationManager:
             return
         
         try:
+            # Show question progress
+            display.conversation_question(self.question_count, total=3)
+            display.thinking()
+            
             # Increment question count after user responds            
             response = self.ai_handler.generate_response(self.conversation_history, self.question_count)
             self.conversation_history.append(f"AI: {response}")
@@ -91,7 +97,8 @@ class ConversationManager:
             # Clean response of asterisks
             cleaned_response = response.replace("*", "")
             
-            print("Beer Tube: " + cleaned_response)
+            display.bot_response(cleaned_response, question_num=self.question_count-1)
+            display.speaking()
             
             # Add message to web interface FIRST, then play audio
             if self.web_interface:
@@ -110,22 +117,20 @@ class ConversationManager:
                 self.end_conversation()
                 
         except Exception as e:
-            print(f"Error generating response: {e}")
+            display.error(f"Error generating response: {e}")
             self.handle_error_recovery()
     
     def dispense_beer(self):
         """Handle beer dispensing logic"""
         self.beer_dispensed = True
-        print("*Beer dispensing mechanism activated*")
+        display.beer_dispensed()
         
         if self.web_interface:
             self.web_interface.set_status(BEER_DISPENSED_MESSAGE)
     
     def end_conversation(self):
         """End current conversation and prepare for next customer"""
-        print("\n" + "="*50)
-        print("CONVERSATION ENDED - READY FOR NEXT CUSTOMER")
-        print("="*50 + "\n")
+        display.conversation_end()
         
         if self.web_interface:
             self.web_interface.set_status(CONVERSATION_ENDED_MESSAGE)
@@ -140,7 +145,7 @@ class ConversationManager:
     
     def handle_error_recovery(self):
         """Handle errors by restarting conversation"""
-        print("Please make sure Ollama is running properly")
+        display.error("Please make sure Ollama is running properly")
         
         if self.web_interface:
             self.web_interface.set_status("Error - please try again")
@@ -150,10 +155,11 @@ class ConversationManager:
         self.question_count = 1  # Reset question count
         self.current_session_folder = None
         self.first_user_message_timestamp = None
-        print("Restarting conversation...")
+        display.warning("Restarting conversation...")
         
         recovery_message = "Sorry about that. Let's start over. You looking for a beer or what?"
-        print("Beer Tube: " + recovery_message)
+        display.bot_response(recovery_message)
+        display.speaking()
         
         if self.web_interface:
             self.web_interface.add_message("Terry", recovery_message, is_ai=True)
