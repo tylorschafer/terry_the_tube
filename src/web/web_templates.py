@@ -492,6 +492,57 @@ def get_main_html_template():
                 0%, 50% { opacity: 1; }
                 51%, 100% { opacity: 0.3; }
             }
+            
+            .tts-loading {
+                display: none;
+                padding: 1rem;
+                text-align: center;
+                background: var(--bg-tertiary);
+                border-radius: 16px;
+                margin: 1rem 0;
+                border: 1px solid var(--border);
+                animation: fadeIn 0.3s ease-out;
+            }
+            
+            .tts-loading.show {
+                display: block;
+            }
+            
+            .spinner {
+                display: inline-block;
+                width: 24px;
+                height: 24px;
+                border: 3px solid var(--border);
+                border-top: 3px solid var(--accent-beer);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin-right: 0.5rem;
+            }
+            
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            .tts-loading-text {
+                color: var(--text-secondary);
+                font-size: 0.9rem;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+            }
+            
+            .message.pending {
+                opacity: 0;
+                transform: translateY(10px);
+                transition: all 0.3s ease-out;
+            }
+            
+            .message.show {
+                opacity: 1;
+                transform: translateY(0);
+            }
         </style>
     </head>
     <body>
@@ -540,6 +591,12 @@ def get_main_html_template():
                 </div>
                 <div class="messages" id="messages">
                     <!-- Messages will be added dynamically -->
+                </div>
+                <div class="tts-loading" id="ttsLoading">
+                    <div class="tts-loading-text">
+                        <div class="spinner"></div>
+                        <span>Generating voice...</span>
+                    </div>
                 </div>
             </div>
             
@@ -679,6 +736,14 @@ def get_main_html_template():
                             lastStatus = data.status;
                         }
                         
+                        // Handle TTS loading spinner
+                        const ttsLoading = document.getElementById('ttsLoading');
+                        if (data.generating_audio) {
+                            ttsLoading.classList.add('show');
+                        } else {
+                            ttsLoading.classList.remove('show');
+                        }
+                        
                         // Only update messages if new ones were added
                         if (data.messages.length > lastMessageCount) {
                             const messagesDiv = document.getElementById('messages');
@@ -687,7 +752,11 @@ def get_main_html_template():
                             for (let i = lastMessageCount; i < data.messages.length; i++) {
                                 const msg = data.messages[i];
                                 const messageDiv = document.createElement('div');
-                                messageDiv.className = 'message ' + (msg.is_ai ? 'ai-message' : 'user-message');
+                                
+                                // Set initial visibility based on show_immediately flag
+                                const initialClass = msg.show_immediately ? 'message show' : 'message pending';
+                                messageDiv.className = initialClass + ' ' + (msg.is_ai ? 'ai-message' : 'user-message');
+                                messageDiv.setAttribute('data-message-id', i);
                                 
                                 const bubble = document.createElement('div');
                                 bubble.className = 'message-bubble';
@@ -705,6 +774,18 @@ def get_main_html_template():
                             
                             lastMessageCount = data.messages.length;
                             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        }
+                        
+                        // Check for messages that should now be visible
+                        if (data.messages.length > 0) {
+                            for (let i = 0; i < data.messages.length; i++) {
+                                const msg = data.messages[i];
+                                const messageDiv = document.querySelector(`[data-message-id="${i}"]`);
+                                if (messageDiv && msg.show_immediately && messageDiv.classList.contains('pending')) {
+                                    messageDiv.classList.remove('pending');
+                                    messageDiv.classList.add('show');
+                                }
+                            }
                         }
                         
                         // Handle message clearing (when count goes down)

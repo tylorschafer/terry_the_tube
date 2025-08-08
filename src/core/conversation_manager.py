@@ -40,13 +40,22 @@ class ConversationManager:
         greeting_message = self.ai_handler.get_greeting_message()
         
         display.bot_response(greeting_message, question_num=0)  # Greeting is intro, not question 1
+        
+        # Handle greeting with loading spinner for web interface
+        message_index = None
+        if self.web_interface:
+            self.web_interface.set_generating_audio(True)
+            self.web_interface.set_status("Generating voice...")
+            message_index = self.web_interface.add_pending_message("Terry", greeting_message, is_ai=True)
+        
         display.speaking()
         
-        if self.web_interface:
-            self.web_interface.add_message("Terry", greeting_message, is_ai=True)
-            self.web_interface.set_status("Ready to serve beer!")
+        # Generate and play greeting with callback
+        self._generate_and_play_tts(greeting_message, message_index)
         
-        self.audio_handler.text_to_speech(greeting_message)
+        if self.web_interface:
+            # This will be set by the callback, but we set a fallback status
+            self.web_interface.set_status("Ready to serve beer!")
     
     def prepare_session_if_needed(self):
         """Create session folder if this is the first user interaction"""
@@ -97,13 +106,21 @@ class ConversationManager:
             cleaned_response = response.replace("*", "")
             
             display.bot_response(cleaned_response, question_num=self.question_count)
+            
+            # Handle web interface message display with loading spinner
+            message_index = None
+            if self.web_interface:
+                # Set generating audio status to show spinner
+                self.web_interface.set_generating_audio(True)
+                self.web_interface.set_status("Generating voice...")
+                
+                # Add message but don't show it immediately (will show when audio starts)
+                message_index = self.web_interface.add_pending_message("Terry", cleaned_response, is_ai=True)
+            
             display.speaking()
             
-            # Add message to web interface FIRST, then play audio
-            if self.web_interface:
-                self.web_interface.add_message("Terry", cleaned_response, is_ai=True)
-            
-            self.audio_handler.text_to_speech(cleaned_response)
+            # Generate and play TTS audio with callback to show message
+            self._generate_and_play_tts(cleaned_response, message_index)
             
             # Handle beer dispensing
             if BEER_DISPENSED_TRIGGER in response and not self.beer_dispensed:
@@ -158,17 +175,46 @@ class ConversationManager:
         self.question_count = 0  # Reset question count to 0
         self.current_session_folder = None
         self.first_user_message_timestamp = None
+        
+        self._restart_conversation_with_recovery()
+    
+    def _generate_and_play_tts(self, text, message_index=None):
+        """Generate TTS and show message when audio starts playing"""
+        def on_audio_starts():
+            """Callback when audio playback starts"""
+            if self.web_interface:
+                # Show the message now that audio is starting to play
+                if message_index is not None:
+                    self.web_interface.show_message(message_index)
+                
+                # Clear generating status and update to speaking status
+                self.web_interface.set_generating_audio(False)
+                self.web_interface.set_status("Speaking...")
+        
+        # Generate and play TTS with callback that triggers when playback starts
+        self.audio_handler.text_to_speech_with_callback(text, on_audio_starts)
+    
+    def _restart_conversation_with_recovery(self):
+        """Helper method for conversation recovery"""
         display.warning("Restarting conversation...")
         
         recovery_message = "Sorry about that. Let's start over. You looking for a beer or what?"
         display.bot_response(recovery_message)
+        
+        # Handle recovery message with loading spinner
+        message_index = None
+        if self.web_interface:
+            self.web_interface.set_generating_audio(True)
+            self.web_interface.set_status("Generating voice...")
+            message_index = self.web_interface.add_pending_message("Terry", recovery_message, is_ai=True)
+        
         display.speaking()
         
-        if self.web_interface:
-            self.web_interface.add_message("Terry", recovery_message, is_ai=True)
-            self.web_interface.set_status("Ready to serve beer!")
+        # Generate and play recovery message with callback
+        self._generate_and_play_tts(recovery_message, message_index)
         
-        self.audio_handler.text_to_speech(recovery_message)
+        if self.web_interface:
+            self.web_interface.set_status("Ready to serve beer!")
     
     def is_conversation_active(self):
         """Check if conversation is currently active"""

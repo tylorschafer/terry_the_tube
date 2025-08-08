@@ -58,6 +58,10 @@ class TerryTubeApp:
             display.component_init("AI Handler")
             self.ai_handler = AIHandler(personality_key=self.personality_key)
             
+            # Set voice clone for the personality
+            if self.personality_key:
+                self.audio_manager.set_personality_voice(self.personality_key)
+            
             # Initialize conversation manager
             display.component_init("Conversation Manager")
             self.conversation_manager = ConversationManager(
@@ -223,6 +227,9 @@ class TerryTubeApp:
         try:
             # Reinitialize AI handler with new personality
             self.ai_handler = AIHandler(personality_key=personality_key)
+            
+            # Set voice clone for the new personality
+            self.audio_manager.set_personality_voice(personality_key)
             
             # Update conversation manager with new AI handler
             self.conversation_manager.ai_handler = self.ai_handler

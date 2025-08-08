@@ -54,7 +54,8 @@ class WebHandler(BaseHTTPRequestHandler):
             'status': self.server.web_interface.get_status(),
             'messages': self.server.web_interface.get_messages(),
             'personality': self.server.web_interface.get_personality_info(),
-            'personality_selected': self.server.web_interface.is_personality_selected()
+            'personality_selected': self.server.web_interface.is_personality_selected(),
+            'generating_audio': self.server.web_interface.is_generating_audio()
         }
         self.wfile.write(json.dumps(data).encode())
     

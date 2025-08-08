@@ -8,7 +8,15 @@ OLLAMA_MODEL = "gemma3:4b-it-q8_0"
 OLLAMA_TEMPERATURE = 0.7
 OLLAMA_TIMEOUT = 6
 
-# TTS Model Configuration
+# TTS Model Configuration - Using XTTS V2 for voice cloning
+XTTS_MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
+USE_XTTS_V2 = True
+
+# Voice cloning configuration
+VOICE_CLONES_DIR = "voice_clones"
+DEFAULT_VOICE_CLONE = "default_voice.wav"  # Fallback if personality voice not found
+
+# Fallback TTS models (if XTTS V2 fails)
 TTS_MODELS_TO_TRY = [
     "tts_models/en/ljspeech/glow-tts",
     "tts_models/en/vctk/vits",
