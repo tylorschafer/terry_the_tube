@@ -31,6 +31,7 @@ Examples:
   python main.py --mode terminal                    # Run in terminal-only mode
   python main.py --personality sarcastic_comedian  # Use specific personality
   python main.py --mode terminal --personality passive_aggressive_librarian
+  python main.py --enable-text-chat                # Enable text chat for testing
   python main.py --info                            # Show system information
         """
     )
@@ -59,11 +60,21 @@ Examples:
         help=personality_help
     )
     
+    parser.add_argument(
+        '--enable-text-chat',
+        action='store_true',
+        help='Enable text chat input in web interface (for testing/debugging)'
+    )
+    
     args = parser.parse_args()
     
     try:
         # Initialize the application
-        app = TerryTubeApp(use_web_gui=(args.mode == 'web'), personality_key=args.personality)
+        app = TerryTubeApp(
+            use_web_gui=(args.mode == 'web'), 
+            personality_key=args.personality,
+            enable_text_chat=args.enable_text_chat
+        )
         
         if args.info:
             # Show system information

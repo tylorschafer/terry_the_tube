@@ -25,10 +25,11 @@ warnings.filterwarnings("ignore", message="FP16 is not supported on CPU; using F
 
 
 class TerryTubeApp:
-    def __init__(self, use_web_gui=True, personality_key=None):
+    def __init__(self, use_web_gui=True, personality_key=None, enable_text_chat=False):
         """Initialize Terry the Tube application"""
         self.use_web_gui = use_web_gui
         self.personality_key = personality_key
+        self.enable_text_chat = enable_text_chat
         self.web_interface = None
         self.recording_in_progress = False
         self.current_audio_file = None
@@ -38,7 +39,10 @@ class TerryTubeApp:
         
         # Setup web interface if needed
         if self.use_web_gui:
-            self.web_interface = WebInterface(message_callback=self.handle_web_action)
+            self.web_interface = WebInterface(
+                message_callback=self.handle_web_action,
+                enable_text_chat=self.enable_text_chat
+            )
             # Set initial personality info
             if self.ai_handler:
                 # If personality was explicitly provided, mark as user-selected to skip overlay
@@ -82,6 +86,9 @@ class TerryTubeApp:
             self.start_recording()
         elif action == 'stop_recording':
             self.stop_recording()
+        elif action == 'send_text_message':
+            if data and 'message' in data:
+                self.process_text_message(data['message'])
         elif action == 'change_personality':
             if data and 'personality' in data:
                 self.change_personality(data['personality'])
@@ -117,6 +124,18 @@ class TerryTubeApp:
             else:
                 if self.current_audio_file:
                     self.process_user_input(self.current_audio_file)
+    
+    def process_text_message(self, text_message):
+        """Process user input from text message"""
+        if not text_message.strip():
+            return
+        
+        display.user_input(text_message)
+        self._add_message("You", text_message, is_ai=False)
+        
+        # Process the text input through conversation manager
+        self.conversation_manager.add_user_message(text_message)
+        self.conversation_manager.generate_and_handle_response()
     
     def process_user_input(self, audio_file):
         """Process user input from audio file"""

@@ -128,7 +128,8 @@ class ConversationManager:
             
             # Handle conversation end - use personality-specific exit string
             exit_string = self.ai_handler.get_exit_string()
-            if exit_string in response:
+            # Make exit string detection more precise - only trigger at the END of response
+            if response.strip().endswith(exit_string):
                 self.end_conversation()
                 
         except Exception as e:

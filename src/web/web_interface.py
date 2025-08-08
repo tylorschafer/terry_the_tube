@@ -10,7 +10,7 @@ from config import WEB_PORT, WEB_HOST
 
 
 class WebInterface:
-    def __init__(self, message_callback=None):
+    def __init__(self, message_callback=None, enable_text_chat=False):
         """Initialize web interface"""
         self.message_callback = message_callback
         self.messages = []
@@ -21,6 +21,7 @@ class WebInterface:
         self.personality_selected = False
         self.personality_selected_by_user = False  # Track if user explicitly selected personality
         self.generating_audio = False  # Track if we're generating TTS audio
+        self.text_chat_enabled = enable_text_chat  # Track if text chat is enabled
         
     def add_message(self, sender, message, is_ai=False, show_immediately=True):
         """Add a message to display"""
@@ -67,6 +68,10 @@ class WebInterface:
     def add_pending_message(self, sender, message, is_ai=False):
         """Add a message that will be hidden until show_message is called"""
         return self.add_message(sender, message, is_ai, show_immediately=False)
+    
+    def is_text_chat_enabled(self):
+        """Check if text chat is enabled"""
+        return self.text_chat_enabled
     
     def handle_action(self, action, data=None):
         """Handle actions from web interface"""
