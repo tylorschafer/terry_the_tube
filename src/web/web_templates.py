@@ -3,9 +3,64 @@ HTML Templates for Terry the Tube Web Interface
 """
 
 
-def get_main_html_template():
-    """Get the main HTML template"""
-    return '''
+def get_main_html_template(text_only_mode=False):
+    """Get the main HTML template with optional text-only mode"""
+    
+    # Conditionally include recording elements
+    recording_button_html = ""
+    recording_indicator_html = ""
+    recording_js = ""
+    
+    if not text_only_mode:
+        recording_button_html = '''
+            <div class="controls">
+                <button class="talk-button" id="talkButton" 
+                        onmousedown="startRecording()" 
+                        onmouseup="stopRecording()"
+                        ontouchstart="startRecording()" 
+                        ontouchend="stopRecording()">
+                    <i class="fas fa-microphone"></i>
+                    <span>Hold to Talk</span>
+                </button>
+            </div>
+        '''
+        
+        recording_indicator_html = '''
+        <div class="recording-indicator" id="recordingIndicator">
+            <div class="recording-dot"></div>
+            <span>Recording...</span>
+        </div>
+        '''
+        
+        recording_js = '''
+            function startRecording() {
+                if (!recording) {
+                    recording = true;
+                    
+                    const indicator = document.getElementById('recordingIndicator');
+                    if (indicator) {
+                        indicator.style.display = 'flex';
+                    }
+                    
+                    fetch('/start_recording', {method: 'POST'});
+                }
+            }
+            
+            function stopRecording() {
+                if (recording) {
+                    recording = false;
+                    
+                    const indicator = document.getElementById('recordingIndicator');
+                    if (indicator) {
+                        indicator.style.display = 'none';
+                    }
+                    
+                    fetch('/stop_recording', {method: 'POST'});
+                }
+            }
+        '''
+    
+    template = '''
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -628,10 +683,7 @@ def get_main_html_template():
     </head>
     <body>
         <div class="background-pattern"></div>
-        <div class="recording-indicator" id="recordingIndicator">
-            <div class="recording-dot"></div>
-            <span>Recording...</span>
-        </div>
+        {recording_indicator_html}
         
         <!-- Personality Selection Overlay -->
         <div class="personality-overlay" id="personalityOverlay">
@@ -696,16 +748,7 @@ def get_main_html_template():
                 </div>
             </div>
             
-            <div class="controls">
-                <button class="talk-button" id="talkButton" 
-                        onmousedown="startRecording()" 
-                        onmouseup="stopRecording()"
-                        ontouchstart="startRecording()" 
-                        ontouchend="stopRecording()">
-                    <i class="fas fa-microphone"></i>
-                    <span>Hold to Talk</span>
-                </button>
-            </div>
+            {recording_button_html}
         </div>
         
         <script>
@@ -714,31 +757,7 @@ def get_main_html_template():
             let selectedPersonality = null;
             let textChatEnabled = false;
             
-            function startRecording() {
-                if (!recording) {
-                    recording = true;
-                    const button = document.getElementById('talkButton');
-                    const indicator = document.getElementById('recordingIndicator');
-                    
-                    button.innerHTML = '<i class="fas fa-stop"></i><span>Release to Stop</span>';
-                    indicator.style.display = 'flex';
-                    
-                    fetch('/start_recording', {method: 'POST'});
-                }
-            }
-            
-            function stopRecording() {
-                if (recording) {
-                    recording = false;
-                    const button = document.getElementById('talkButton');
-                    const indicator = document.getElementById('recordingIndicator');
-                    
-                    button.innerHTML = '<i class="fas fa-microphone"></i><span>Hold to Talk</span>';
-                    indicator.style.display = 'none';
-                    
-                    fetch('/stop_recording', {method: 'POST'});
-                }
-            }
+            {recording_js}
             
             function sendTextMessage() {
                 const textInput = document.getElementById('textInput');
@@ -1013,3 +1032,10 @@ def get_main_html_template():
     </body>
     </html>
     '''
+    
+    # Replace placeholders with actual content
+    template = template.replace('{recording_indicator_html}', recording_indicator_html)
+    template = template.replace('{recording_button_html}', recording_button_html)
+    template = template.replace('{recording_js}', recording_js)
+    
+    return template

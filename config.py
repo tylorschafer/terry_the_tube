@@ -4,7 +4,7 @@ Configuration constants for Terry the Tube AI Beer Dispenser
 import os
 
 # AI Model Configuration
-OLLAMA_MODEL = "gemma3:4b-it-q8_0"
+OLLAMA_MODEL = "mistral-small:24b"
 OLLAMA_TEMPERATURE = 0.7
 OLLAMA_TIMEOUT = 6
 

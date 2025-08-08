@@ -8,6 +8,7 @@ import warnings
 from core.ai_handler import AIHandler
 from core.conversation_manager import ConversationManager
 from audio.audio_manager import AudioManager
+from audio.mock_audio_manager import MockAudioManager
 from web.web_interface import WebInterface
 from web.web_server import start_web_server
 from utils.cleanup import FileCleanup
@@ -25,11 +26,12 @@ warnings.filterwarnings("ignore", message="FP16 is not supported on CPU; using F
 
 
 class TerryTubeApp:
-    def __init__(self, use_web_gui=True, personality_key=None, enable_text_chat=False):
+    def __init__(self, use_web_gui=True, personality_key=None, enable_text_chat=False, text_only_mode=False):
         """Initialize Terry the Tube application"""
         self.use_web_gui = use_web_gui
         self.personality_key = personality_key
         self.enable_text_chat = enable_text_chat
+        self.text_only_mode = text_only_mode
         self.web_interface = None
         self.recording_in_progress = False
         self.current_audio_file = None
@@ -41,7 +43,8 @@ class TerryTubeApp:
         if self.use_web_gui:
             self.web_interface = WebInterface(
                 message_callback=self.handle_web_action,
-                enable_text_chat=self.enable_text_chat
+                enable_text_chat=self.enable_text_chat,
+                text_only_mode=self.text_only_mode
             )
             # Set initial personality info
             if self.ai_handler:
@@ -54,9 +57,13 @@ class TerryTubeApp:
         try:
             display.section("Initializing Components")
             
-            # Initialize audio manager
-            display.component_init("Audio Manager")
-            self.audio_manager = AudioManager()
+            # Initialize audio manager (mock for text-only mode)
+            if self.text_only_mode:
+                display.component_init("Mock Audio Manager (Text-Only)")
+                self.audio_manager = MockAudioManager()
+            else:
+                display.component_init("Audio Manager")
+                self.audio_manager = AudioManager()
             
             # Initialize AI handler with personality
             display.component_init("AI Handler")

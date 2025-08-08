@@ -181,19 +181,28 @@ class ConversationManager:
     
     def _generate_and_play_tts(self, text, message_index=None):
         """Generate TTS and show message when audio starts playing"""
-        def on_audio_starts():
-            """Callback when audio playback starts"""
-            if self.web_interface:
-                # Show the message now that audio is starting to play
-                if message_index is not None:
-                    self.web_interface.show_message(message_index)
-                
-                # Clear generating status and update to speaking status
-                self.web_interface.set_generating_audio(False)
-                self.web_interface.set_status("Speaking...")
-        
-        # Generate and play TTS with callback that triggers when playback starts
-        self.audio_handler.text_to_speech_with_callback(text, on_audio_starts)
+        # Check if we're in text-only mode
+        if self.web_interface and self.web_interface.is_text_only_mode():
+            # In text-only mode, show message immediately and skip TTS
+            if message_index is not None:
+                self.web_interface.show_message(message_index)
+            self.web_interface.set_generating_audio(False)
+            self.web_interface.set_status("Ready to serve beer!")
+        else:
+            # Normal mode with TTS
+            def on_audio_starts():
+                """Callback when audio playback starts"""
+                if self.web_interface:
+                    # Show the message now that audio is starting to play
+                    if message_index is not None:
+                        self.web_interface.show_message(message_index)
+                    
+                    # Clear generating status and update to speaking status
+                    self.web_interface.set_generating_audio(False)
+                    self.web_interface.set_status("Speaking...")
+            
+            # Generate and play TTS with callback that triggers when playback starts
+            self.audio_handler.text_to_speech_with_callback(text, on_audio_starts)
     
     def _restart_conversation_with_recovery(self):
         """Helper method for conversation recovery"""

@@ -10,7 +10,7 @@ from config import WEB_PORT, WEB_HOST
 
 
 class WebInterface:
-    def __init__(self, message_callback=None, enable_text_chat=False):
+    def __init__(self, message_callback=None, enable_text_chat=False, text_only_mode=False):
         """Initialize web interface"""
         self.message_callback = message_callback
         self.messages = []
@@ -22,6 +22,7 @@ class WebInterface:
         self.personality_selected_by_user = False  # Track if user explicitly selected personality
         self.generating_audio = False  # Track if we're generating TTS audio
         self.text_chat_enabled = enable_text_chat  # Track if text chat is enabled
+        self.text_only_mode = text_only_mode  # Track if in text-only mode
         
     def add_message(self, sender, message, is_ai=False, show_immediately=True):
         """Add a message to display"""
@@ -97,3 +98,7 @@ class WebInterface:
         """Reset personality selection to show overlay for next cycle"""
         self.personality_selected_by_user = False
         # Keep the current personality info but mark as not user-selected
+    
+    def is_text_only_mode(self):
+        """Check if in text-only mode (no audio processing)"""
+        return self.text_only_mode
