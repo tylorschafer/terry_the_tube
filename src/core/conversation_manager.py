@@ -23,7 +23,7 @@ class ConversationManager:
         self.conversation_history = []
         self.beer_dispensed = False
         self.conversation_active = True
-        self.question_count = 1  # Start at 1 since greeting is question 1
+        self.question_count = 0  # Start at 0, greeting doesn't count as a question
         self.current_session_folder = None
         self.first_user_message_timestamp = None
     
@@ -32,21 +32,19 @@ class ConversationManager:
         self.conversation_history = []
         self.beer_dispensed = False
         self.conversation_active = True
-        self.question_count = 1  # Reset to 1 since greeting is question 1
+        self.question_count = 0  # Reset to 0, greeting doesn't count as a question
         self.current_session_folder = None
         self.first_user_message_timestamp = None
         
         # Get personality-specific greeting
         greeting_message = self.ai_handler.get_greeting_message()
         
-        display.bot_response(greeting_message, question_num=1)
+        display.bot_response(greeting_message, question_num=0)  # Greeting is intro, not question 1
         display.speaking()
         
         if self.web_interface:
             self.web_interface.add_message("Terry", greeting_message, is_ai=True)
             self.web_interface.set_status("Ready to serve beer!")
-            # Small delay to ensure message appears before audio starts
-            time.sleep(0.1)
         
         self.audio_handler.text_to_speech(greeting_message)
     
@@ -86,28 +84,24 @@ class ConversationManager:
             return
         
         try:
-            # Show question progress
+            # Show question progress (increment first since we're about to ask the next question)
             display.conversation_question(self.question_count, total=3)
             display.thinking()
             
-            # Increment question count after user responds            
             response = self.ai_handler.generate_response(self.conversation_history, self.question_count)
             self.conversation_history.append(f"AI: {response}")
+            self.question_count += 1
 
-            if len(self.conversation_history) > 0:  # Don't increment on first greeting
-                self.question_count += 1
             
             # Clean response of asterisks
             cleaned_response = response.replace("*", "")
             
-            display.bot_response(cleaned_response, question_num=self.question_count-1)
+            display.bot_response(cleaned_response, question_num=self.question_count)
             display.speaking()
             
             # Add message to web interface FIRST, then play audio
             if self.web_interface:
                 self.web_interface.add_message("Terry", cleaned_response, is_ai=True)
-                # Small delay to ensure message appears before audio starts
-                time.sleep(0.1)
             
             self.audio_handler.text_to_speech(cleaned_response)
             
@@ -161,7 +155,7 @@ class ConversationManager:
         
         # Reset conversation
         self.conversation_history = []
-        self.question_count = 1  # Reset question count
+        self.question_count = 0  # Reset question count to 0
         self.current_session_folder = None
         self.first_user_message_timestamp = None
         display.warning("Restarting conversation...")
@@ -173,8 +167,6 @@ class ConversationManager:
         if self.web_interface:
             self.web_interface.add_message("Terry", recovery_message, is_ai=True)
             self.web_interface.set_status("Ready to serve beer!")
-            # Small delay to ensure message appears before audio starts
-            time.sleep(0.1)
         
         self.audio_handler.text_to_speech(recovery_message)
     
@@ -191,6 +183,6 @@ class ConversationManager:
         self.conversation_history = []
         self.beer_dispensed = False
         self.conversation_active = True
-        self.question_count = 1  # Reset question count
+        self.question_count = 0  # Reset question count to 0
         self.current_session_folder = None
         self.first_user_message_timestamp = None
