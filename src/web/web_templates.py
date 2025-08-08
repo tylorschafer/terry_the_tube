@@ -36,6 +36,120 @@ def get_main_html_template():
                 box-sizing: border-box;
             }
             
+            .personality-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                backdrop-filter: blur(10px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2000;
+                opacity: 1;
+                transition: opacity 0.3s ease;
+            }
+            
+            .personality-overlay.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+            
+            .personality-modal {
+                background: var(--bg-secondary);
+                border: 2px solid var(--accent-beer);
+                border-radius: 24px;
+                padding: 3rem;
+                max-width: 600px;
+                width: 90%;
+                text-align: center;
+                box-shadow: 0 20px 60px var(--shadow);
+                position: relative;
+                animation: modalSlideIn 0.4s ease-out;
+            }
+            
+            @keyframes modalSlideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-50px) scale(0.9);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+            
+            .personality-modal h2 {
+                font-size: 2rem;
+                margin-bottom: 1rem;
+                background: linear-gradient(45deg, var(--accent-beer), #ffcc44);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+            
+            .personality-modal p {
+                color: var(--text-secondary);
+                margin-bottom: 2rem;
+                font-size: 1.1rem;
+                line-height: 1.5;
+            }
+            
+            .personality-dropdown {
+                width: 100%;
+                padding: 1rem;
+                font-size: 1.1rem;
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
+                border: 2px solid var(--border);
+                border-radius: 12px;
+                margin-bottom: 2rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            
+            .personality-dropdown:hover,
+            .personality-dropdown:focus {
+                border-color: var(--accent-beer);
+                box-shadow: 0 0 20px var(--glow-beer);
+                outline: none;
+            }
+            
+            .personality-dropdown option {
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
+                padding: 0.5rem;
+            }
+            
+            .confirm-btn {
+                width: 100%;
+                height: 60px;
+                font-size: 1.2rem;
+                font-weight: 600;
+                background: linear-gradient(45deg, var(--accent-beer), #cc8800);
+                color: var(--bg-primary);
+                border: none;
+                border-radius: 16px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            
+            .confirm-btn:hover {
+                background: linear-gradient(45deg, #cc8800, var(--accent-beer));
+                transform: translateY(-2px);
+                box-shadow: 0 8px 30px var(--glow-beer);
+            }
+            
+            .confirm-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                transform: none;
+            }
+            
             body {
                 font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
                 background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1a2e 100%);
@@ -378,6 +492,57 @@ def get_main_html_template():
                 0%, 50% { opacity: 1; }
                 51%, 100% { opacity: 0.3; }
             }
+            
+            .tts-loading {
+                display: none;
+                padding: 1rem;
+                text-align: center;
+                background: var(--bg-tertiary);
+                border-radius: 16px;
+                margin: 1rem 0;
+                border: 1px solid var(--border);
+                animation: fadeIn 0.3s ease-out;
+            }
+            
+            .tts-loading.show {
+                display: block;
+            }
+            
+            .spinner {
+                display: inline-block;
+                width: 24px;
+                height: 24px;
+                border: 3px solid var(--border);
+                border-top: 3px solid var(--accent-beer);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin-right: 0.5rem;
+            }
+            
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            .tts-loading-text {
+                color: var(--text-secondary);
+                font-size: 0.9rem;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+            }
+            
+            .message.pending {
+                opacity: 0;
+                transform: translateY(10px);
+                transition: all 0.3s ease-out;
+            }
+            
+            .message.show {
+                opacity: 1;
+                transform: translateY(0);
+            }
         </style>
     </head>
     <body>
@@ -385,6 +550,22 @@ def get_main_html_template():
         <div class="recording-indicator" id="recordingIndicator">
             <div class="recording-dot"></div>
             <span>Recording...</span>
+        </div>
+        
+        <!-- Personality Selection Overlay -->
+        <div class="personality-overlay" id="personalityOverlay">
+            <div class="personality-modal">
+                <h2>Select Terry's Personality</h2>
+                <p>Choose how Terry will interact with you today. Each personality offers a unique beer-dispensing experience!</p>
+                
+                <select class="personality-dropdown" id="personalityDropdown">
+                    <option value="">Loading personalities...</option>
+                </select>
+                
+                <button class="confirm-btn" id="confirmPersonalityBtn" disabled>
+                    Start Your Beer Journey
+                </button>
+            </div>
         </div>
         
         <div class="container">
@@ -405,11 +586,17 @@ def get_main_html_template():
                     <div class="chat-avatar">T</div>
                     <div class="chat-info">
                         <h3>Terry</h3>
-                        <p>Your AI Bartender</p>
+                        <p id="personalityDisplay">Your AI Bartender</p>
                     </div>
                 </div>
                 <div class="messages" id="messages">
                     <!-- Messages will be added dynamically -->
+                </div>
+                <div class="tts-loading" id="ttsLoading">
+                    <div class="tts-loading-text">
+                        <div class="spinner"></div>
+                        <span>Generating voice...</span>
+                    </div>
                 </div>
             </div>
             
@@ -427,6 +614,8 @@ def get_main_html_template():
         
         <script>
             let recording = false;
+            let availablePersonalities = [];
+            let selectedPersonality = null;
             
             function startRecording() {
                 if (!recording) {
@@ -457,6 +646,84 @@ def get_main_html_template():
             let lastMessageCount = 0;
             let lastStatus = '';
             
+            // Load personalities on page load
+            function loadPersonalities() {
+                fetch('/personalities')
+                    .then(response => response.json())
+                    .then(data => {
+                        availablePersonalities = data.personalities;
+                        populatePersonalityDropdown();
+                    })
+                    .catch(error => console.log('Failed to load personalities:', error));
+            }
+            
+            function populatePersonalityDropdown() {
+                const dropdown = document.getElementById('personalityDropdown');
+                dropdown.innerHTML = '<option value="">Choose a personality...</option>';
+                
+                availablePersonalities.forEach(personality => {
+                    const option = document.createElement('option');
+                    option.value = personality.key;
+                    option.textContent = personality.name;
+                    dropdown.appendChild(option);
+                });
+                
+                dropdown.addEventListener('change', function() {
+                    const confirmBtn = document.getElementById('confirmPersonalityBtn');
+                    if (this.value) {
+                        confirmBtn.disabled = false;
+                        selectedPersonality = this.value;
+                    } else {
+                        confirmBtn.disabled = true;
+                        selectedPersonality = null;
+                    }
+                });
+            }
+            
+            function confirmPersonalitySelection() {
+                if (!selectedPersonality) return;
+                
+                const confirmBtn = document.getElementById('confirmPersonalityBtn');
+                confirmBtn.textContent = 'Starting...';
+                confirmBtn.disabled = true;
+                
+                fetch('/select_personality', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        personality: selectedPersonality
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        document.getElementById('personalityOverlay').classList.add('hidden');
+                    } else {
+                        throw new Error('Failed to set personality');
+                    }
+                })
+                .catch(error => {
+                    console.log('Error setting personality:', error);
+                    confirmBtn.textContent = 'Try Again';
+                    confirmBtn.disabled = false;
+                });
+            }
+            
+            function resetPersonalitySelection() {
+                // Reset dropdown selection
+                const dropdown = document.getElementById('personalityDropdown');
+                dropdown.value = '';
+                
+                // Reset button state
+                const confirmBtn = document.getElementById('confirmPersonalityBtn');
+                confirmBtn.textContent = 'Start Your Beer Journey';
+                confirmBtn.disabled = true;
+                
+                // Reset selected personality
+                selectedPersonality = null;
+            }
+            
             function updateInterface() {
                 fetch('/status')
                     .then(response => response.json())
@@ -469,6 +736,14 @@ def get_main_html_template():
                             lastStatus = data.status;
                         }
                         
+                        // Handle TTS loading spinner
+                        const ttsLoading = document.getElementById('ttsLoading');
+                        if (data.generating_audio) {
+                            ttsLoading.classList.add('show');
+                        } else {
+                            ttsLoading.classList.remove('show');
+                        }
+                        
                         // Only update messages if new ones were added
                         if (data.messages.length > lastMessageCount) {
                             const messagesDiv = document.getElementById('messages');
@@ -477,7 +752,11 @@ def get_main_html_template():
                             for (let i = lastMessageCount; i < data.messages.length; i++) {
                                 const msg = data.messages[i];
                                 const messageDiv = document.createElement('div');
-                                messageDiv.className = 'message ' + (msg.is_ai ? 'ai-message' : 'user-message');
+                                
+                                // Set initial visibility based on show_immediately flag
+                                const initialClass = msg.show_immediately ? 'message show' : 'message pending';
+                                messageDiv.className = initialClass + ' ' + (msg.is_ai ? 'ai-message' : 'user-message');
+                                messageDiv.setAttribute('data-message-id', i);
                                 
                                 const bubble = document.createElement('div');
                                 bubble.className = 'message-bubble';
@@ -495,6 +774,18 @@ def get_main_html_template():
                             
                             lastMessageCount = data.messages.length;
                             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        }
+                        
+                        // Check for messages that should now be visible
+                        if (data.messages.length > 0) {
+                            for (let i = 0; i < data.messages.length; i++) {
+                                const msg = data.messages[i];
+                                const messageDiv = document.querySelector(`[data-message-id="${i}"]`);
+                                if (messageDiv && msg.show_immediately && messageDiv.classList.contains('pending')) {
+                                    messageDiv.classList.remove('pending');
+                                    messageDiv.classList.add('show');
+                                }
+                            }
                         }
                         
                         // Handle message clearing (when count goes down)
@@ -525,6 +816,24 @@ def get_main_html_template():
                             lastMessageCount = data.messages.length;
                             messagesDiv.scrollTop = messagesDiv.scrollHeight;
                         }
+                        
+                        // Handle personality display and overlay visibility
+                        const overlay = document.getElementById('personalityOverlay');
+                        const personalityDisplay = document.getElementById('personalityDisplay');
+                        
+                        if (data.personality_selected && data.personality) {
+                            // Hide overlay if personality is selected
+                            overlay.classList.add('hidden');
+                            // Update personality display
+                            personalityDisplay.textContent = `${data.personality.short_name} Bartender`;
+                        } else if (!data.personality_selected) {
+                            // Show overlay if no personality selected
+                            overlay.classList.remove('hidden');
+                            // Reset dropdown and button for new cycle
+                            resetPersonalitySelection();
+                            // Reset personality display to default
+                            personalityDisplay.textContent = 'Your AI Bartender';
+                        }
                     })
                     .catch(error => console.log('Status update failed:', error));
             }
@@ -537,6 +846,11 @@ def get_main_html_template():
                 return 'fas fa-check-circle';
             }
             
+            // Add event listener for confirm button
+            document.getElementById('confirmPersonalityBtn').addEventListener('click', confirmPersonalitySelection);
+            
+            // Initialize on page load
+            loadPersonalities();
             setInterval(updateInterface, 1000);
             updateInterface();
         </script>

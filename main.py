@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.terry_app import TerryTubeApp
 from src.utils.display import display
+from src.personalities import get_personality_names
 
 
 def main():
@@ -25,10 +26,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python main.py                    # Run with web interface (default)
-  python main.py --mode web         # Run with web interface  
-  python main.py --mode terminal    # Run in terminal-only mode
-  python main.py --info             # Show system information
+  python main.py                                    # Run with web interface (default)
+  python main.py --mode web                         # Run with web interface  
+  python main.py --mode terminal                    # Run in terminal-only mode
+  python main.py --personality sarcastic_comedian  # Use specific personality
+  python main.py --mode terminal --personality passive_aggressive_librarian
+  python main.py --info                            # Show system information
         """
     )
     
@@ -45,11 +48,22 @@ Examples:
         help='Show system information and exit'
     )
     
+    # Get available personalities for help text
+    personalities = get_personality_names()
+    personality_choices = [key for key, _ in personalities]
+    personality_help = 'Personality type: ' + ', '.join([f'{key} ({name})' for key, name in personalities])
+    
+    parser.add_argument(
+        '--personality', 
+        choices=personality_choices,
+        help=personality_help
+    )
+    
     args = parser.parse_args()
     
     try:
         # Initialize the application
-        app = TerryTubeApp(use_web_gui=(args.mode == 'web'))
+        app = TerryTubeApp(use_web_gui=(args.mode == 'web'), personality_key=args.personality)
         
         if args.info:
             # Show system information
@@ -59,6 +73,7 @@ Examples:
             system_info = {
                 "Web Mode": {"available": True, "value": info['web_mode']},
                 "AI Available": {"available": info['ai_available'], "value": info['ai_available']},
+                "Personality": {"available": bool(info['personality']), "value": info['personality']['name'] if info['personality'] else None},
                 "TTS Model": {"available": info['audio']['tts_available'], "value": info['audio']['tts_model']},
                 "STT Model": {"available": info['audio']['stt_available'], "value": info['audio']['stt_model']['model']}
             }
