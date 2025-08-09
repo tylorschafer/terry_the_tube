@@ -704,7 +704,7 @@ def get_main_html_template(text_only_mode=False):
         <div class="container">
             <div class="header">
                 <h1 class="title">TERRY THE TUBE</h1>
-                <p class="subtitle">Your Sarcastic AI Beer Dispenser</p>
+                <p class="subtitle">Your AI Beer Dispenser</p>
             </div>
             
             <div class="status-card">

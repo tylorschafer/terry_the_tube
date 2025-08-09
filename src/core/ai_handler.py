@@ -5,9 +5,14 @@ from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
 import sys
 import os
+import time
+import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from config import OLLAMA_MODEL, OLLAMA_TEMPERATURE, OLLAMA_TIMEOUT, DEFAULT_PERSONALITY
 from src.personalities import get_personality_by_key
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class AIHandler:
@@ -38,25 +43,43 @@ class AIHandler:
     
     def generate_response(self, conversation_history, question_count=1):
         """Generate AI response based on conversation history and question count"""
+        context = "\n".join(conversation_history)
+        # Add question count information to context
+        context += f"\n\nCURRENT QUESTION NUMBER: {question_count} (out of 3 maximum)"
+        if question_count >= 3:
+            context += "\nYou've already asked 3 questions."
+        
+        logger.info(f"Starting LLM generation for question {question_count}")
+        start_time = time.time()
+        
         try:
-            context = "\n".join(conversation_history)
-            # Add question count information to context
-            context += f"\n\nCURRENT QUESTION NUMBER: {question_count} (out of 3 maximum)"
-            if question_count >= 3:
-                context += "\nYou've already asked 3 questions."
-            
             response = self.chain.invoke({"context": context})
+            
+            generation_time = time.time() - start_time
+            logger.info(f"LLM generation completed in {generation_time:.2f} seconds for question {question_count}")
+            
             return response.strip()
         except Exception as e:
+            generation_time = time.time() - start_time
             print(f"Error generating response: {e}")
+            logger.error(f"LLM generation failed after {generation_time:.2f} seconds: {e}")
             raise
     
     def is_model_available(self):
         """Check if the AI model is available and responsive"""
+        logger.info("Starting LLM availability check")
+        start_time = time.time()
+        
         try:
             test_response = self.chain.invoke({"context": "Test message"})
+            
+            check_time = time.time() - start_time
+            logger.info(f"LLM availability check completed in {check_time:.2f} seconds - Model is available")
+            
             return True
-        except Exception:
+        except Exception as e:
+            check_time = time.time() - start_time
+            logger.warning(f"LLM availability check failed after {check_time:.2f} seconds: {e}")
             return False
     
     def get_personality_info(self):
