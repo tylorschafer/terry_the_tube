@@ -2,7 +2,6 @@ chatbot
 claude.md
 asset
 share
-audio
 recordings
 transcripts
 .DS_Store
@@ -11,3 +10,5 @@ pyvenv.cfg
 lib/
 bin/
 __pycache__/
+xtts_models
+xtts_server_env
