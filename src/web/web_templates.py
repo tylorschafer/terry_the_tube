@@ -543,6 +543,70 @@ def get_main_html_template():
                 opacity: 1;
                 transform: translateY(0);
             }
+            
+            /* Text Chat Styles */
+            .text-chat-container {
+                margin-top: 1rem;
+                animation: fadeIn 0.3s ease-out;
+            }
+            
+            .text-chat-input-group {
+                display: flex;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+            
+            .text-chat-input {
+                flex: 1;
+                padding: 1rem;
+                font-size: 1rem;
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
+                border: 2px solid var(--border);
+                border-radius: 12px;
+                outline: none;
+                transition: all 0.3s ease;
+            }
+            
+            .text-chat-input::placeholder {
+                color: var(--text-muted);
+            }
+            
+            .text-chat-input:focus {
+                border-color: var(--accent-green);
+                box-shadow: 0 0 20px var(--glow-green);
+            }
+            
+            .text-chat-send-btn {
+                width: 60px;
+                height: 60px;
+                background: linear-gradient(45deg, var(--accent-green), #00b894);
+                color: var(--text-primary);
+                border: none;
+                border-radius: 12px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.2rem;
+            }
+            
+            .text-chat-send-btn:hover {
+                background: linear-gradient(45deg, #00b894, var(--accent-green));
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px var(--glow-green);
+            }
+            
+            .text-chat-send-btn:active {
+                transform: translateY(0);
+            }
+            
+            .text-chat-send-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                transform: none;
+            }
         </style>
     </head>
     <body>
@@ -609,6 +673,20 @@ def get_main_html_template():
                     <i class="fas fa-microphone"></i>
                     <span>Hold to Talk</span>
                 </button>
+                
+                <!-- Text Chat Interface -->
+                <div class="text-chat-container" id="textChatContainer" style="display: none;">
+                    <div class="text-chat-input-group">
+                        <input type="text" 
+                               class="text-chat-input" 
+                               id="textChatInput" 
+                               placeholder="Type your message here..."
+                               maxlength="500">
+                        <button class="text-chat-send-btn" id="textChatSendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -834,6 +912,14 @@ def get_main_html_template():
                             // Reset personality display to default
                             personalityDisplay.textContent = 'Your AI Bartender';
                         }
+                        
+                        // Show/hide text chat based on configuration
+                        const textChatContainer = document.getElementById('textChatContainer');
+                        if (data.text_chat_enabled) {
+                            textChatContainer.style.display = 'block';
+                        } else {
+                            textChatContainer.style.display = 'none';
+                        }
                     })
                     .catch(error => console.log('Status update failed:', error));
             }
@@ -846,11 +932,67 @@ def get_main_html_template():
                 return 'fas fa-check-circle';
             }
             
+            // Text Chat Functions
+            function sendTextMessage() {
+                const input = document.getElementById('textChatInput');
+                const message = input.value.trim();
+                
+                if (!message) return;
+                
+                // Disable input and button while sending
+                const sendBtn = document.getElementById('textChatSendBtn');
+                input.disabled = true;
+                sendBtn.disabled = true;
+                
+                fetch('/send_text_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        input.value = ''; // Clear input on success
+                    } else {
+                        console.log('Failed to send text message');
+                    }
+                })
+                .catch(error => {
+                    console.log('Error sending text message:', error);
+                })
+                .finally(() => {
+                    // Re-enable input and button
+                    input.disabled = false;
+                    sendBtn.disabled = false;
+                    input.focus();
+                });
+            }
+            
+            function setupTextChatListeners() {
+                const input = document.getElementById('textChatInput');
+                const sendBtn = document.getElementById('textChatSendBtn');
+                
+                // Send on button click
+                sendBtn.addEventListener('click', sendTextMessage);
+                
+                // Send on Enter key press
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendTextMessage();
+                    }
+                });
+            }
+            
             // Add event listener for confirm button
             document.getElementById('confirmPersonalityBtn').addEventListener('click', confirmPersonalitySelection);
             
             // Initialize on page load
             loadPersonalities();
+            setupTextChatListeners();
             setInterval(updateInterface, 1000);
             updateInterface();
         </script>

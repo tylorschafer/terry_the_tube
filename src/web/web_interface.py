@@ -10,7 +10,7 @@ from config import WEB_PORT, WEB_HOST
 
 
 class WebInterface:
-    def __init__(self, message_callback=None):
+    def __init__(self, message_callback=None, enable_text_chat=False, text_only_mode=False):
         """Initialize web interface"""
         self.message_callback = message_callback
         self.messages = []
@@ -21,6 +21,9 @@ class WebInterface:
         self.personality_selected = False
         self.personality_selected_by_user = False  # Track if user explicitly selected personality
         self.generating_audio = False  # Track if we're generating TTS audio
+        self.generating_response = False  # Track if we're generating LLM response
+        self.text_chat_enabled = enable_text_chat  # Track if text chat is enabled
+        self.text_only_mode = text_only_mode  # Track if in text-only mode
         
     def add_message(self, sender, message, is_ai=False, show_immediately=True):
         """Add a message to display"""
@@ -59,6 +62,14 @@ class WebInterface:
         """Check if currently generating audio"""
         return self.generating_audio
     
+    def set_generating_response(self, generating):
+        """Set response generation status"""
+        self.generating_response = generating
+    
+    def is_generating_response(self):
+        """Check if currently generating response"""
+        return self.generating_response
+    
     def show_message(self, message_index):
         """Make a message visible (used when audio is ready)"""
         if 0 <= message_index < len(self.messages):
@@ -67,6 +78,14 @@ class WebInterface:
     def add_pending_message(self, sender, message, is_ai=False):
         """Add a message that will be hidden until show_message is called"""
         return self.add_message(sender, message, is_ai, show_immediately=False)
+    
+    def is_text_chat_enabled(self):
+        """Check if text chat is enabled"""
+        return self.text_chat_enabled
+    
+    def is_text_only_mode(self):
+        """Check if in text-only mode (no audio processing)"""
+        return self.text_only_mode
     
     def handle_action(self, action, data=None):
         """Handle actions from web interface"""

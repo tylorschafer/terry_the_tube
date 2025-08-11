@@ -11,3 +11,6 @@ pyvenv.cfg
 lib/
 bin/
 __pycache__/
+
+# Environment files (contains API keys)
+.env

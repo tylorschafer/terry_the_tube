@@ -8,6 +8,7 @@ import warnings
 from core.ai_handler import AIHandler
 from core.conversation_manager import ConversationManager
 from audio.audio_manager import AudioManager
+from audio.mock_audio_manager import MockAudioManager
 from web.web_interface import WebInterface
 from web.web_server import start_web_server
 from utils.cleanup import FileCleanup
@@ -17,7 +18,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from config import (
     STT_ERROR_MESSAGE, STT_TECHNICAL_ERROR, 
-    TRANSCRIPTION_FAILED_ERROR, RECORDING_FAILED_WEB_ERROR
+    TRANSCRIPTION_FAILED_ERROR, RECORDING_FAILED_WEB_ERROR,
+    ENABLE_TEXT_CHAT, TEXT_CHAT_ONLY
 )
 
 # Filter out TTS/Whisper warnings
@@ -38,7 +40,11 @@ class TerryTubeApp:
         
         # Setup web interface if needed
         if self.use_web_gui:
-            self.web_interface = WebInterface(message_callback=self.handle_web_action)
+            self.web_interface = WebInterface(
+                message_callback=self.handle_web_action,
+                enable_text_chat=ENABLE_TEXT_CHAT,
+                text_only_mode=TEXT_CHAT_ONLY
+            )
             # Set initial personality info
             if self.ai_handler:
                 # If personality was explicitly provided, mark as user-selected to skip overlay
@@ -50,9 +56,13 @@ class TerryTubeApp:
         try:
             display.section("Initializing Components")
             
-            # Initialize audio manager
-            display.component_init("Audio Manager")
-            self.audio_manager = AudioManager()
+            # Initialize audio manager (mock for text-only mode)
+            if TEXT_CHAT_ONLY:
+                display.component_init("Mock Audio Manager (Text-Only)")
+                self.audio_manager = MockAudioManager()
+            else:
+                display.component_init("Audio Manager")
+                self.audio_manager = AudioManager()
             
             # Initialize AI handler with personality
             display.component_init("AI Handler")
@@ -82,6 +92,9 @@ class TerryTubeApp:
             self.start_recording()
         elif action == 'stop_recording':
             self.stop_recording()
+        elif action == 'send_text_message':
+            if data and 'message' in data:
+                self.process_text_message(data['message'])
         elif action == 'change_personality':
             if data and 'personality' in data:
                 self.change_personality(data['personality'])
@@ -117,6 +130,18 @@ class TerryTubeApp:
             else:
                 if self.current_audio_file:
                     self.process_user_input(self.current_audio_file)
+    
+    def process_text_message(self, text_message):
+        """Process user input from text message"""
+        if not text_message.strip():
+            return
+        
+        display.user_input(text_message)
+        self._add_message("You", text_message, is_ai=False)
+        
+        # Process the text input through conversation manager
+        self.conversation_manager.add_user_message(text_message)
+        self.conversation_manager.generate_and_handle_response()
     
     def process_user_input(self, audio_file):
         """Process user input from audio file"""

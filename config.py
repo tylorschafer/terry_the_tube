@@ -2,20 +2,38 @@
 Configuration constants for Terry the Tube AI Beer Dispenser
 """
 import os
+from pathlib import Path
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    # Look for .env file in the project root
+    env_path = Path(__file__).parent / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+        print("Loaded environment variables from .env file")
+    else:
+        print("No .env file found - using system environment variables only")
+except ImportError:
+    print("python-dotenv not installed - using system environment variables only")
 
 # AI Model Configuration
-OLLAMA_MODEL = "gemma3:4b-it-q8_0"
+OLLAMA_MODEL = "mistral-small:24b"
 OLLAMA_TEMPERATURE = 0.7
 OLLAMA_TIMEOUT = 6
 
-# TTS Model Configuration
-TTS_MODELS_TO_TRY = [
-    "tts_models/en/ljspeech/glow-tts",
-    "tts_models/en/vctk/vits",
-    "tts_models/en/ljspeech/neural_hmm",
-    "tts_models/en/ljspeech/fast_pitch",
-    "tts_models/en/ljspeech/tacotron2-DDC"
-]
+# TTS Configuration
+USE_OPENAI_TTS = True  # Use OpenAI TTS for high-quality, fast generation (paid service)
+OPENAI_TTS_MODEL = "gpt-4o-mini-tts"  # Options: "tts-1", "tts-1-hd", "gpt-4o-mini-tts" (supports instructions)
+OPENAI_TTS_VOICE = "echo"  # Options: "alloy", "echo", "fable", "onyx", "nova", "shimmer"
+OPENAI_TTS_SPEED = 1.0  # Speed: 0.25 to 4.0
+OPENAI_TTS_FORMAT = "wav"  # Format: "mp3", "opus", "aac", "flac", "wav", "pcm"
+
+# Fallback: macOS 'say' command is used if OpenAI TTS fails
+
+# Text Chat Configuration
+ENABLE_TEXT_CHAT = True  # Enable text chat input in web interface
+TEXT_CHAT_ONLY = False   # Text-only mode (no audio processing at all)
 
 # Audio Configuration
 AUDIO_SAMPLE_RATE = 16000
@@ -56,5 +74,5 @@ TRANSCRIPT_EXTENSIONS = ['.vtt', '.srt', '.tsv', '.txt', '.json']
 
 # System Commands (macOS specific)
 AUDIO_PLAY_COMMAND = ["afplay"]
-TTS_FALLBACK_COMMAND = ["say"]
+TTS_FALLBACK_COMMAND = ["say", "-v", "fred"]
 AUDIO_RECORD_COMMAND = ["rec", "-r", str(AUDIO_SAMPLE_RATE), "-c", str(AUDIO_CHANNELS)]
