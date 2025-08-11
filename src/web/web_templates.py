@@ -662,6 +662,12 @@ def get_main_html_template():
                         <span>Generating voice...</span>
                     </div>
                 </div>
+                <div class="tts-loading" id="responseLoading">
+                    <div class="tts-loading-text">
+                        <div class="spinner"></div>
+                        <span>Generating response...</span>
+                    </div>
+                </div>
             </div>
             
             <div class="controls">
@@ -765,6 +771,9 @@ def get_main_html_template():
                 confirmBtn.textContent = 'Starting...';
                 confirmBtn.disabled = true;
                 
+                // Hide overlay immediately when button is clicked
+                document.getElementById('personalityOverlay').classList.add('hidden');
+                
                 fetch('/select_personality', {
                     method: 'POST',
                     headers: {
@@ -775,9 +784,9 @@ def get_main_html_template():
                     })
                 })
                 .then(response => {
-                    if (response.ok) {
-                        document.getElementById('personalityOverlay').classList.add('hidden');
-                    } else {
+                    if (!response.ok) {
+                        // Show overlay again if there was an error
+                        document.getElementById('personalityOverlay').classList.remove('hidden');
                         throw new Error('Failed to set personality');
                     }
                 })
@@ -785,6 +794,8 @@ def get_main_html_template():
                     console.log('Error setting personality:', error);
                     confirmBtn.textContent = 'Try Again';
                     confirmBtn.disabled = false;
+                    // Show overlay again on error
+                    document.getElementById('personalityOverlay').classList.remove('hidden');
                 });
             }
             
@@ -820,6 +831,14 @@ def get_main_html_template():
                             ttsLoading.classList.add('show');
                         } else {
                             ttsLoading.classList.remove('show');
+                        }
+                        
+                        // Handle response loading spinner
+                        const responseLoading = document.getElementById('responseLoading');
+                        if (data.generating_response) {
+                            responseLoading.classList.add('show');
+                        } else {
+                            responseLoading.classList.remove('show');
                         }
                         
                         // Only update messages if new ones were added
@@ -905,10 +924,12 @@ def get_main_html_template():
                             // Update personality display
                             personalityDisplay.textContent = `${data.personality.short_name} Bartender`;
                         } else if (!data.personality_selected) {
-                            // Show overlay if no personality selected
-                            overlay.classList.remove('hidden');
-                            // Reset dropdown and button for new cycle
-                            resetPersonalitySelection();
+                            // Show overlay if no personality selected (only if it's currently hidden)
+                            if (overlay.classList.contains('hidden')) {
+                                overlay.classList.remove('hidden');
+                                // Reset dropdown and button for new cycle only when showing overlay
+                                resetPersonalitySelection();
+                            }
                             // Reset personality display to default
                             personalityDisplay.textContent = 'Your AI Bartender';
                         }

@@ -90,10 +90,18 @@ class ConversationManager:
             display.conversation_question(self.question_count, total=3)
             display.thinking()
             
+            # Set generating response status for web interface
+            if self.web_interface:
+                self.web_interface.set_generating_response(True)
+                self.web_interface.set_status("Generating response...")
+            
             response = self.ai_handler.generate_response(self.conversation_history, self.question_count)
             self.conversation_history.append(f"AI: {response}")
             self.question_count += 1
-
+            
+            # Clear generating response status
+            if self.web_interface:
+                self.web_interface.set_generating_response(False)
             
             # Clean response of asterisks
             cleaned_response = response.replace("*", "")

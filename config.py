@@ -18,6 +18,12 @@ except ImportError:
     print("python-dotenv not installed - using system environment variables only")
 
 # AI Model Configuration
+USE_OPENAI_CHAT = True  # Use OpenAI GPT for chat generation (paid service)
+OPENAI_CHAT_MODEL = "gpt-5-mini"  # OpenAI chat model
+OPENAI_CHAT_TEMPERATURE = 0.7
+OPENAI_CHAT_TIMEOUT = 30
+
+# Ollama Fallback Configuration (used when USE_OPENAI_CHAT=False)
 OLLAMA_MODEL = "mistral-small:24b"
 OLLAMA_TEMPERATURE = 0.7
 OLLAMA_TIMEOUT = 6
