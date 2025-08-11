@@ -548,7 +548,8 @@ def get_main_html_template(text_only_mode=False):
                 51%, 100% { opacity: 0.3; }
             }
             
-            .tts-loading {
+            .tts-loading,
+            .response-loading {
                 display: none;
                 padding: 1rem;
                 text-align: center;
@@ -559,7 +560,8 @@ def get_main_html_template(text_only_mode=False):
                 animation: fadeIn 0.3s ease-out;
             }
             
-            .tts-loading.show {
+            .tts-loading.show,
+            .response-loading.show {
                 display: block;
             }
             
@@ -579,7 +581,8 @@ def get_main_html_template(text_only_mode=False):
                 100% { transform: rotate(360deg); }
             }
             
-            .tts-loading-text {
+            .tts-loading-text,
+            .response-loading-text {
                 color: var(--text-secondary);
                 font-size: 0.9rem;
                 display: inline-flex;
@@ -724,6 +727,12 @@ def get_main_html_template(text_only_mode=False):
                 </div>
                 <div class="messages" id="messages">
                     <!-- Messages will be added dynamically -->
+                </div>
+                <div class="response-loading" id="responseLoading">
+                    <div class="response-loading-text">
+                        <div class="spinner"></div>
+                        <span>Generating response...</span>
+                    </div>
                 </div>
                 <div class="tts-loading" id="ttsLoading">
                     <div class="tts-loading-text">
@@ -892,6 +901,14 @@ def get_main_html_template(text_only_mode=False):
                             const icon = getStatusIcon(data.status);
                             statusElement.innerHTML = `<i class="${icon}"></i><span>${data.status}</span>`;
                             lastStatus = data.status;
+                        }
+                        
+                        // Handle response loading spinner
+                        const responseLoading = document.getElementById('responseLoading');
+                        if (data.generating_response) {
+                            responseLoading.classList.add('show');
+                        } else {
+                            responseLoading.classList.remove('show');
                         }
                         
                         // Handle TTS loading spinner

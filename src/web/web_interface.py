@@ -21,6 +21,7 @@ class WebInterface:
         self.personality_selected = False
         self.personality_selected_by_user = False  # Track if user explicitly selected personality
         self.generating_audio = False  # Track if we're generating TTS audio
+        self.generating_response = False  # Track if we're generating LLM response
         self.text_chat_enabled = enable_text_chat  # Track if text chat is enabled
         self.text_only_mode = text_only_mode  # Track if in text-only mode
         
@@ -60,6 +61,14 @@ class WebInterface:
     def is_generating_audio(self):
         """Check if currently generating audio"""
         return self.generating_audio
+    
+    def set_generating_response(self, generating):
+        """Set response generation status"""
+        self.generating_response = generating
+    
+    def is_generating_response(self):
+        """Check if currently generating response"""
+        return self.generating_response
     
     def show_message(self, message_index):
         """Make a message visible (used when audio is ready)"""

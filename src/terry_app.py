@@ -69,10 +69,6 @@ class TerryTubeApp:
             display.component_init("AI Handler")
             self.ai_handler = AIHandler(personality_key=self.personality_key)
             
-            # Set voice clone for the personality
-            if self.personality_key:
-                self.audio_manager.set_personality_voice(self.personality_key)
-            
             # Initialize conversation manager
             display.component_init("Conversation Manager")
             self.conversation_manager = ConversationManager(
@@ -254,9 +250,6 @@ class TerryTubeApp:
             # Reinitialize AI handler with new personality
             self.ai_handler = AIHandler(personality_key=personality_key)
             
-            # Set voice clone for the new personality
-            self.audio_manager.set_personality_voice(personality_key)
-            
             # Update conversation manager with new AI handler
             self.conversation_manager.ai_handler = self.ai_handler
             
@@ -271,9 +264,11 @@ class TerryTubeApp:
             self.conversation_manager.start_conversation()
             
             display.success(f"Personality changed to: {self.ai_handler.get_personality_info()['name']}")
+            return True
             
         except Exception as e:
             display.error(f"Failed to change personality: {e}")
+            return False
     
     def get_personality_info(self):
         """Get current personality information"""

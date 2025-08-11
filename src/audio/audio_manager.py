@@ -45,10 +45,6 @@ class AudioManager:
         """Set the session folder for TTS output files"""
         self.tts_handler.set_session_folder(session_folder)
     
-    def set_personality_voice(self, personality_key):
-        """Set the voice clone for the current personality"""
-        self.tts_handler.set_personality_voice(personality_key)
-    
     def is_recording(self):
         """Check if currently recording"""
         return self.recording_handler.is_recording()
@@ -65,7 +61,6 @@ class AudioManager:
         return {
             "tts_model": self.tts_handler.get_current_model(),
             "tts_available": self.tts_handler.is_available(),
-            "xtts_available": self.tts_handler.is_xtts_available(),
             "tts_mode": tts_mode,
             "voice_clone_info": tts_info,
             "stt_model": self.stt_handler.get_model_info(),

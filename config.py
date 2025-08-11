@@ -8,21 +8,10 @@ OLLAMA_MODEL = "gemma3:12b"
 OLLAMA_TEMPERATURE = 0.7
 OLLAMA_TIMEOUT = 6
 
-# TTS Model Configuration - Using XTTS V2 for voice cloning
-XTTS_MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
-USE_XTTS_V2 = True
-
-# XTTS API Server Configuration (much faster option)
-USE_XTTS_API_SERVER = True  # Set to True to use external XTTS API server
-XTTS_API_SERVER_URL = "http://localhost:8020"  # Default XTTS API server URL
-XTTS_API_TIMEOUT = 30  # Timeout for API requests in seconds
-XTTS_API_RETRIES = 2  # Number of retries for failed API requests
-
 # Voice cloning configuration
 VOICE_CLONES_DIR = "voice_clones"
 DEFAULT_VOICE_CLONE = "default_voice.wav"  # Fallback if personality voice not found
 
-# Fallback TTS models (if XTTS V2 fails)
 TTS_MODELS_TO_TRY = [
     "tts_models/en/ljspeech/glow-tts",
     "tts_models/en/vctk/vits",

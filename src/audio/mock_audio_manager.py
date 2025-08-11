@@ -21,11 +21,6 @@ class MockAudioManager:
         self.recording_in_progress = False
         print("Mock Audio Manager initialized (text-only mode)")
     
-    def set_personality_voice(self, personality_key):
-        """Mock setting personality voice"""
-        self.current_personality = personality_key
-        print(f"[MOCK] Voice set for personality: {personality_key}")
-    
     def set_recording_session_folder(self, session_folder):
         """Mock setting recording session folder"""
         self.session_folder = session_folder
@@ -84,7 +79,6 @@ class MockAudioManager:
             "voice_clone_info": {
                 "personality": self.current_personality,
                 "voice_clone_path": "mock_voice_clone.wav",
-                "xtts_available": True,
                 "voice_clones_dir": "mock_voice_clones/"
             }
         }
