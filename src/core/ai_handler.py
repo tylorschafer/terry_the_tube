@@ -12,7 +12,6 @@ from src.personalities import get_personality_by_key
 
 class AIHandler:
     def __init__(self, personality_key=None):
-        """Initialize the AI language model handler with specified personality"""
         try:
             self.model = OllamaLLM(
                 model=OLLAMA_MODEL, 
@@ -37,7 +36,6 @@ class AIHandler:
             raise
     
     def generate_response(self, conversation_history, question_count=1):
-        """Generate AI response based on conversation history and question count"""
         try:
             context = "\n".join(conversation_history)
             # Add question count information to context
@@ -52,7 +50,6 @@ class AIHandler:
             raise
     
     def is_model_available(self):
-        """Check if the AI model is available and responsive"""
         try:
             test_response = self.chain.invoke({"context": "Test message"})
             return True
@@ -60,7 +57,6 @@ class AIHandler:
             return False
     
     def get_personality_info(self):
-        """Get current personality information"""
         return {
             "key": self.personality_key,
             "name": self.personality_config["name"],
@@ -68,9 +64,7 @@ class AIHandler:
         }
     
     def get_greeting_message(self):
-        """Get personality-specific greeting message"""
         return self.personality_config["greeting"]
     
     def get_exit_string(self):
-        """Get personality-specific exit string"""
         return self.personality_config["exit_string"]

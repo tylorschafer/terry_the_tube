@@ -5,8 +5,8 @@ Each personality has specific voice direction and speaking style prompts.
 
 VOICE_INSTRUCTIONS = {
     "sarcastic_comedian": {
-        "voice": "onyx",  # Deep, authoritative voice perfect for sarcasm
-        "speed": 1.4,     # Slightly faster for comedic timing
+        "voice": "onyx",
+        "speed": 1.4,
         "instruction": """
             Speak with the attitude and delivery of a brash, sarcastic stand-up comedian like Bill Burr. 
             
@@ -64,8 +64,8 @@ VOICE_INSTRUCTIONS = {
     },
     
     "condescending_childrens_host": {
-        "voice": "shimmer", # Soft but can be patronizing
-        "speed": 1.1,       # Slightly faster, energetic but controlled
+        "voice": "shimmer",
+        "speed": 1.1,
         "instruction": """
             Speak like a overly cheerful woman children's TV show host who secretly can't stand kids and thinks adults are even worse.
             
