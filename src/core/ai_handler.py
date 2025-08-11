@@ -6,8 +6,12 @@ from langchain_core.prompts import ChatPromptTemplate
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 from config import OLLAMA_MODEL, OLLAMA_TEMPERATURE, OLLAMA_TIMEOUT, DEFAULT_PERSONALITY
 from src.personalities import get_personality_by_key
+from utils.common import setup_logging, timing_decorator
+
+logger = setup_logging(__name__)
 
 
 class AIHandler:
@@ -36,27 +40,35 @@ class AIHandler:
             print("Please make sure Ollama is running and the model is available")
             raise
     
+    @timing_decorator("LLM generation")
     def generate_response(self, conversation_history, question_count=1):
         """Generate AI response based on conversation history and question count"""
+        context = "\n".join(conversation_history)
+        # Add question count information to context
+        context += f"\n\nCURRENT QUESTION NUMBER: {question_count} (out of 3 maximum)"
+        if question_count >= 3:
+            context += "\nYou've already asked 3 questions."
+        
+        logger.info(f"Starting LLM generation for question {question_count}")
+        
         try:
-            context = "\n".join(conversation_history)
-            # Add question count information to context
-            context += f"\n\nCURRENT QUESTION NUMBER: {question_count} (out of 3 maximum)"
-            if question_count >= 3:
-                context += "\nYou've already asked 3 questions."
-            
             response = self.chain.invoke({"context": context})
+            logger.info(f"LLM generation completed for question {question_count}")
             return response.strip()
         except Exception as e:
             print(f"Error generating response: {e}")
+            logger.error(f"LLM generation failed: {e}")
             raise
     
+    @timing_decorator("LLM availability check")
     def is_model_available(self):
         """Check if the AI model is available and responsive"""
         try:
             test_response = self.chain.invoke({"context": "Test message"})
+            logger.info("Model is available")
             return True
-        except Exception:
+        except Exception as e:
+            logger.warning(f"LLM availability check failed: {e}")
             return False
     
     def get_personality_info(self):

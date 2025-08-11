@@ -3,9 +3,64 @@ HTML Templates for Terry the Tube Web Interface
 """
 
 
-def get_main_html_template():
-    """Get the main HTML template"""
-    return '''
+def get_main_html_template(text_only_mode=False):
+    """Get the main HTML template with optional text-only mode"""
+    
+    # Conditionally include recording elements
+    recording_button_html = ""
+    recording_indicator_html = ""
+    recording_js = ""
+    
+    if not text_only_mode:
+        recording_button_html = '''
+            <div class="controls">
+                <button class="talk-button" id="talkButton" 
+                        onmousedown="startRecording()" 
+                        onmouseup="stopRecording()"
+                        ontouchstart="startRecording()" 
+                        ontouchend="stopRecording()">
+                    <i class="fas fa-microphone"></i>
+                    <span>Hold to Talk</span>
+                </button>
+            </div>
+        '''
+        
+        recording_indicator_html = '''
+        <div class="recording-indicator" id="recordingIndicator">
+            <div class="recording-dot"></div>
+            <span>Recording...</span>
+        </div>
+        '''
+        
+        recording_js = '''
+            function startRecording() {
+                if (!recording) {
+                    recording = true;
+                    
+                    const indicator = document.getElementById('recordingIndicator');
+                    if (indicator) {
+                        indicator.style.display = 'flex';
+                    }
+                    
+                    fetch('/start_recording', {method: 'POST'});
+                }
+            }
+            
+            function stopRecording() {
+                if (recording) {
+                    recording = false;
+                    
+                    const indicator = document.getElementById('recordingIndicator');
+                    if (indicator) {
+                        indicator.style.display = 'none';
+                    }
+                    
+                    fetch('/stop_recording', {method: 'POST'});
+                }
+            }
+        '''
+    
+    template = '''
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -493,7 +548,8 @@ def get_main_html_template():
                 51%, 100% { opacity: 0.3; }
             }
             
-            .tts-loading {
+            .tts-loading,
+            .response-loading {
                 display: none;
                 padding: 1rem;
                 text-align: center;
@@ -504,7 +560,8 @@ def get_main_html_template():
                 animation: fadeIn 0.3s ease-out;
             }
             
-            .tts-loading.show {
+            .tts-loading.show,
+            .response-loading.show {
                 display: block;
             }
             
@@ -524,7 +581,8 @@ def get_main_html_template():
                 100% { transform: rotate(360deg); }
             }
             
-            .tts-loading-text {
+            .tts-loading-text,
+            .response-loading-text {
                 color: var(--text-secondary);
                 font-size: 0.9rem;
                 display: inline-flex;
@@ -543,14 +601,92 @@ def get_main_html_template():
                 opacity: 1;
                 transform: translateY(0);
             }
+            
+            .text-chat-container {
+                display: none;
+                background: var(--bg-secondary);
+                border-radius: 20px;
+                border: 1px solid var(--border);
+                box-shadow: 0 8px 32px var(--shadow);
+                backdrop-filter: blur(10px);
+                margin-bottom: 1rem;
+                overflow: hidden;
+            }
+            
+            .text-chat-container.enabled {
+                display: block;
+            }
+            
+            .text-chat-form {
+                display: flex;
+                padding: 1rem;
+                gap: 0.5rem;
+            }
+            
+            .text-input {
+                flex: 1;
+                padding: 1rem 1.5rem;
+                font-size: 1rem;
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
+                border: 2px solid var(--border);
+                border-radius: 12px;
+                outline: none;
+                transition: all 0.3s ease;
+                font-family: inherit;
+            }
+            
+            .text-input::placeholder {
+                color: var(--text-muted);
+            }
+            
+            .text-input:focus {
+                border-color: var(--accent-beer);
+                box-shadow: 0 0 20px var(--glow-beer);
+            }
+            
+            .send-button {
+                padding: 1rem 2rem;
+                font-size: 1rem;
+                font-weight: 600;
+                background: linear-gradient(45deg, var(--accent-beer), #cc8800);
+                color: var(--bg-primary);
+                border: none;
+                border-radius: 12px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .send-button:hover {
+                background: linear-gradient(45deg, #cc8800, var(--accent-beer));
+                transform: translateY(-2px);
+                box-shadow: 0 8px 30px var(--glow-beer);
+            }
+            
+            .send-button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                transform: none;
+            }
+            
+            .text-chat-toggle {
+                text-align: center;
+                padding: 0.5rem;
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                background: var(--bg-tertiary);
+                border-top: 1px solid var(--border);
+            }
         </style>
     </head>
     <body>
         <div class="background-pattern"></div>
-        <div class="recording-indicator" id="recordingIndicator">
-            <div class="recording-dot"></div>
-            <span>Recording...</span>
-        </div>
+        {recording_indicator_html}
         
         <!-- Personality Selection Overlay -->
         <div class="personality-overlay" id="personalityOverlay">
@@ -571,7 +707,7 @@ def get_main_html_template():
         <div class="container">
             <div class="header">
                 <h1 class="title">TERRY THE TUBE</h1>
-                <p class="subtitle">Your Sarcastic AI Beer Dispenser</p>
+                <p class="subtitle">Your AI Beer Dispenser</p>
             </div>
             
             <div class="status-card">
@@ -592,6 +728,12 @@ def get_main_html_template():
                 <div class="messages" id="messages">
                     <!-- Messages will be added dynamically -->
                 </div>
+                <div class="response-loading" id="responseLoading">
+                    <div class="response-loading-text">
+                        <div class="spinner"></div>
+                        <span>Generating response...</span>
+                    </div>
+                </div>
                 <div class="tts-loading" id="ttsLoading">
                     <div class="tts-loading-text">
                         <div class="spinner"></div>
@@ -600,47 +742,72 @@ def get_main_html_template():
                 </div>
             </div>
             
-            <div class="controls">
-                <button class="talk-button" id="talkButton" 
-                        onmousedown="startRecording()" 
-                        onmouseup="stopRecording()"
-                        ontouchstart="startRecording()" 
-                        ontouchend="stopRecording()">
-                    <i class="fas fa-microphone"></i>
-                    <span>Hold to Talk</span>
-                </button>
+            <div class="text-chat-container" id="textChatContainer">
+                <form class="text-chat-form" id="textChatForm">
+                    <input type="text" class="text-input" id="textInput" 
+                           placeholder="Type your message here... (testing mode)" 
+                           maxlength="500" autocomplete="off">
+                    <button type="submit" class="send-button" id="sendButton">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Send</span>
+                    </button>
+                </form>
+                <div class="text-chat-toggle">
+                    <i class="fas fa-keyboard"></i> Text Chat Mode Enabled (Testing)
+                </div>
             </div>
+            
+            {recording_button_html}
         </div>
         
         <script>
             let recording = false;
             let availablePersonalities = [];
             let selectedPersonality = null;
+            let textChatEnabled = false;
             
-            function startRecording() {
-                if (!recording) {
-                    recording = true;
-                    const button = document.getElementById('talkButton');
-                    const indicator = document.getElementById('recordingIndicator');
-                    
-                    button.innerHTML = '<i class="fas fa-stop"></i><span>Release to Stop</span>';
-                    indicator.style.display = 'flex';
-                    
-                    fetch('/start_recording', {method: 'POST'});
-                }
-            }
+            {recording_js}
             
-            function stopRecording() {
-                if (recording) {
-                    recording = false;
-                    const button = document.getElementById('talkButton');
-                    const indicator = document.getElementById('recordingIndicator');
-                    
-                    button.innerHTML = '<i class="fas fa-microphone"></i><span>Hold to Talk</span>';
-                    indicator.style.display = 'none';
-                    
-                    fetch('/stop_recording', {method: 'POST'});
-                }
+            function sendTextMessage() {
+                const textInput = document.getElementById('textInput');
+                const sendButton = document.getElementById('sendButton');
+                const message = textInput.value.trim();
+                
+                if (!message) return false;
+                
+                // Disable input while processing
+                textInput.disabled = true;
+                sendButton.disabled = true;
+                sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Sending</span>';
+                
+                fetch('/send_text_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        textInput.value = '';
+                    } else {
+                        throw new Error('Failed to send message');
+                    }
+                })
+                .catch(error => {
+                    console.log('Error sending text message:', error);
+                })
+                .finally(() => {
+                    // Re-enable input
+                    textInput.disabled = false;
+                    sendButton.disabled = false;
+                    sendButton.innerHTML = '<i class="fas fa-paper-plane"></i><span>Send</span>';
+                    textInput.focus();
+                });
+                
+                return false; // Prevent form submission
             }
             
             let lastMessageCount = 0;
@@ -734,6 +901,14 @@ def get_main_html_template():
                             const icon = getStatusIcon(data.status);
                             statusElement.innerHTML = `<i class="${icon}"></i><span>${data.status}</span>`;
                             lastStatus = data.status;
+                        }
+                        
+                        // Handle response loading spinner
+                        const responseLoading = document.getElementById('responseLoading');
+                        if (data.generating_response) {
+                            responseLoading.classList.add('show');
+                        } else {
+                            responseLoading.classList.remove('show');
                         }
                         
                         // Handle TTS loading spinner
@@ -834,6 +1009,17 @@ def get_main_html_template():
                             // Reset personality display to default
                             personalityDisplay.textContent = 'Your AI Bartender';
                         }
+                        
+                        // Handle text chat visibility based on server setting
+                        const textChatContainer = document.getElementById('textChatContainer');
+                        if (data.text_chat_enabled !== undefined) {
+                            textChatEnabled = data.text_chat_enabled;
+                            if (textChatEnabled) {
+                                textChatContainer.classList.add('enabled');
+                            } else {
+                                textChatContainer.classList.remove('enabled');
+                            }
+                        }
                     })
                     .catch(error => console.log('Status update failed:', error));
             }
@@ -849,6 +1035,12 @@ def get_main_html_template():
             // Add event listener for confirm button
             document.getElementById('confirmPersonalityBtn').addEventListener('click', confirmPersonalitySelection);
             
+            // Add event listener for text chat form
+            document.getElementById('textChatForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                sendTextMessage();
+            });
+            
             // Initialize on page load
             loadPersonalities();
             setInterval(updateInterface, 1000);
@@ -857,3 +1049,10 @@ def get_main_html_template():
     </body>
     </html>
     '''
+    
+    # Replace placeholders with actual content
+    template = template.replace('{recording_indicator_html}', recording_indicator_html)
+    template = template.replace('{recording_button_html}', recording_button_html)
+    template = template.replace('{recording_js}', recording_js)
+    
+    return template

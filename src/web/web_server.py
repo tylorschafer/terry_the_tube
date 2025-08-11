@@ -30,6 +30,8 @@ class WebHandler(BaseHTTPRequestHandler):
             self._handle_start_recording()
         elif self.path == '/stop_recording':
             self._handle_stop_recording()
+        elif self.path == '/send_text_message':
+            self._handle_send_text_message()
         elif self.path == '/select_personality':
             self._handle_select_personality()
         else:
@@ -41,7 +43,10 @@ class WebHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
         
-        html = get_main_html_template()
+        # Check if we're in text-only mode
+        text_only_mode = hasattr(self.server, 'web_interface') and self.server.web_interface.is_text_only_mode()
+        
+        html = get_main_html_template(text_only_mode=text_only_mode)
         self.wfile.write(html.encode())
     
     def _serve_status(self):
@@ -55,7 +60,9 @@ class WebHandler(BaseHTTPRequestHandler):
             'messages': self.server.web_interface.get_messages(),
             'personality': self.server.web_interface.get_personality_info(),
             'personality_selected': self.server.web_interface.is_personality_selected(),
-            'generating_audio': self.server.web_interface.is_generating_audio()
+            'generating_audio': self.server.web_interface.is_generating_audio(),
+            'generating_response': self.server.web_interface.is_generating_response(),
+            'text_chat_enabled': self.server.web_interface.is_text_chat_enabled()
         }
         self.wfile.write(json.dumps(data).encode())
     
@@ -78,6 +85,30 @@ class WebHandler(BaseHTTPRequestHandler):
                 daemon=True
             ).start()
         self._send_ok_response()
+    
+    def _handle_send_text_message(self):
+        """Handle send text message request"""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            if 'message' in data and self.server.web_interface.message_callback:
+                threading.Thread(
+                    target=self.server.web_interface.message_callback,
+                    args=('send_text_message', data),
+                    daemon=True
+                ).start()
+                self._send_ok_response()
+            else:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(b"Missing message parameter")
+                
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(f"Error: {str(e)}".encode())
     
     def _serve_personalities(self):
         """Serve available personalities JSON"""

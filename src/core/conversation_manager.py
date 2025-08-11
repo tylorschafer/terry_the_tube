@@ -97,9 +97,18 @@ class ConversationManager:
             display.conversation_question(self.question_count, total=3)
             display.thinking()
             
+            # Set generating response status to show spinner
+            if self.web_interface:
+                self.web_interface.set_generating_response(True)
+                self.web_interface.set_status("Generating response...")
+            
             response = self.ai_handler.generate_response(self.conversation_history, self.question_count)
             self.conversation_history.append(f"AI: {response}")
             self.question_count += 1
+            
+            # Clear generating response status
+            if self.web_interface:
+                self.web_interface.set_generating_response(False)
 
             
             # Clean response of asterisks
@@ -128,10 +137,14 @@ class ConversationManager:
             
             # Handle conversation end - use personality-specific exit string
             exit_string = self.ai_handler.get_exit_string()
-            if exit_string in response:
+            # Make exit string detection more precise - only trigger at the END of response
+            if response.strip().endswith(exit_string):
                 self.end_conversation()
                 
         except Exception as e:
+            # Clear generating response status on error
+            if self.web_interface:
+                self.web_interface.set_generating_response(False)
             display.error(f"Error generating response: {e}")
             self.handle_error_recovery()
     
@@ -180,19 +193,28 @@ class ConversationManager:
     
     def _generate_and_play_tts(self, text, message_index=None):
         """Generate TTS and show message when audio starts playing"""
-        def on_audio_starts():
-            """Callback when audio playback starts"""
-            if self.web_interface:
-                # Show the message now that audio is starting to play
-                if message_index is not None:
-                    self.web_interface.show_message(message_index)
-                
-                # Clear generating status and update to speaking status
-                self.web_interface.set_generating_audio(False)
-                self.web_interface.set_status("Speaking...")
-        
-        # Generate and play TTS with callback that triggers when playback starts
-        self.audio_handler.text_to_speech_with_callback(text, on_audio_starts)
+        # Check if we're in text-only mode
+        if self.web_interface and self.web_interface.is_text_only_mode():
+            # In text-only mode, show message immediately and skip TTS
+            if message_index is not None:
+                self.web_interface.show_message(message_index)
+            self.web_interface.set_generating_audio(False)
+            self.web_interface.set_status("Ready to serve beer!")
+        else:
+            # Normal mode with TTS
+            def on_audio_starts():
+                """Callback when audio playback starts"""
+                if self.web_interface:
+                    # Show the message now that audio is starting to play
+                    if message_index is not None:
+                        self.web_interface.show_message(message_index)
+                    
+                    # Clear generating status and update to speaking status
+                    self.web_interface.set_generating_audio(False)
+                    self.web_interface.set_status("Speaking...")
+            
+            # Generate and play TTS with callback that triggers when playback starts
+            self.audio_handler.text_to_speech_with_callback(text, on_audio_starts)
     
     def _restart_conversation_with_recovery(self):
         """Helper method for conversation recovery"""
