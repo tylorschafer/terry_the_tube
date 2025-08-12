@@ -42,7 +42,11 @@ class TerryTubeApp:
         
         # Setup web interface if needed
         if self.use_web_gui:
-            self.web_interface = WebInterface(message_callback=self.handle_web_action)
+            self.web_interface = WebInterface(
+                message_callback=self.handle_web_action,
+                enable_text_chat=ENABLE_TEXT_CHAT,
+                text_only_mode=TEXT_CHAT_ONLY
+            )
             # Set initial personality info
             if self.ai_handler:
                 # If personality was explicitly provided, mark as user-selected to skip overlay
@@ -248,6 +252,10 @@ class TerryTubeApp:
             
             # Store the current personality key
             self.personality_key = personality_key
+            
+            # Update audio manager with new personality
+            if hasattr(self.audio_manager, 'set_personality'):
+                self.audio_manager.set_personality(personality_key)
             
             # Update web interface with new personality info (marked as user-selected)
             if self.web_interface:

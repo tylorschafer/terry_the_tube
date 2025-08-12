@@ -768,16 +768,15 @@ def get_main_html_template(text_only_mode=False):
             {recording_js}
             
             function sendTextMessage() {
-                const textInput = document.getElementById('textInput');
-                const sendButton = document.getElementById('sendButton');
-                const message = textInput.value.trim();
+                const input = document.getElementById('textChatInput');
+                const sendBtn = document.getElementById('textChatSendBtn');
+                const message = input.value.trim();
                 
-                if (!message) return false;
+                if (!message) return;
                 
-                // Disable input while processing
-                textInput.disabled = true;
-                sendButton.disabled = true;
-                sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Sending</span>';
+                // Disable input and button while sending
+                input.disabled = true;
+                sendBtn.disabled = true;
                 
                 fetch('/send_text_message', {
                     method: 'POST',
@@ -790,23 +789,20 @@ def get_main_html_template(text_only_mode=False):
                 })
                 .then(response => {
                     if (response.ok) {
-                        textInput.value = '';
+                        input.value = ''; // Clear input on success
                     } else {
-                        throw new Error('Failed to send message');
+                        console.log('Failed to send text message');
                     }
                 })
                 .catch(error => {
                     console.log('Error sending text message:', error);
                 })
                 .finally(() => {
-                    // Re-enable input
-                    textInput.disabled = false;
-                    sendButton.disabled = false;
-                    sendButton.innerHTML = '<i class="fas fa-paper-plane"></i><span>Send</span>';
-                    textInput.focus();
+                    // Re-enable input and button
+                    input.disabled = false;
+                    sendBtn.disabled = false;
+                    input.focus();
                 });
-                
-                return false; // Prevent form submission
             }
             
             let lastMessageCount = 0;
@@ -1043,44 +1039,6 @@ def get_main_html_template(text_only_mode=False):
                 return 'fas fa-check-circle';
             }
             
-            // Text Chat Functions
-            function sendTextMessage() {
-                const input = document.getElementById('textChatInput');
-                const message = input.value.trim();
-                
-                if (!message) return;
-                
-                // Disable input and button while sending
-                const sendBtn = document.getElementById('textChatSendBtn');
-                input.disabled = true;
-                sendBtn.disabled = true;
-                
-                fetch('/send_text_message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: message
-                    })
-                })
-                .then(response => {
-                    if (response.ok) {
-                        input.value = ''; // Clear input on success
-                    } else {
-                        console.log('Failed to send text message');
-                    }
-                })
-                .catch(error => {
-                    console.log('Error sending text message:', error);
-                })
-                .finally(() => {
-                    // Re-enable input and button
-                    input.disabled = false;
-                    sendBtn.disabled = false;
-                    input.focus();
-                });
-            }
             
             function setupTextChatListeners() {
                 const input = document.getElementById('textChatInput');
@@ -1101,11 +1059,6 @@ def get_main_html_template(text_only_mode=False):
             // Add event listener for confirm button
             document.getElementById('confirmPersonalityBtn').addEventListener('click', confirmPersonalitySelection);
             
-            // Add event listener for text chat form
-            document.getElementById('textChatForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                sendTextMessage();
-            });
             
             // Initialize on page load
             loadPersonalities();

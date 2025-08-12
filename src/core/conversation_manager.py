@@ -25,6 +25,10 @@ class ConversationManager:
         self.question_count = 0  # Start at 0, greeting doesn't count as a question
         self.current_session_folder = None
         self.first_user_message_timestamp = None
+        
+        # Set personality for audio handler
+        if hasattr(self.audio_handler, 'set_personality') and hasattr(self.ai_handler, 'personality_key'):
+            self.audio_handler.set_personality(self.ai_handler.personality_key)
     
     def start_conversation(self):
         self.conversation_history = []
