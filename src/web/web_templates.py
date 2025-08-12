@@ -42,7 +42,7 @@ def get_main_html_template(text_only_mode=False):
                         indicator.style.display = 'flex';
                     }
                     
-                    fetch('/start_recording', {method: 'POST'});
+                    sendWebSocketMessage('start_recording');
                 }
             }
             
@@ -55,7 +55,7 @@ def get_main_html_template(text_only_mode=False):
                         indicator.style.display = 'none';
                     }
                     
-                    fetch('/stop_recording', {method: 'POST'});
+                    sendWebSocketMessage('stop_recording');
                 }
             }
         '''
@@ -535,6 +535,39 @@ def get_main_html_template(text_only_mode=False):
                 box-shadow: 0 4px 20px rgba(255, 87, 87, 0.4);
             }
             
+            .connection-indicator {
+                position: fixed;
+                top: 2rem;
+                left: 2rem;
+                padding: 0.5rem 1rem;
+                border-radius: 25px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                z-index: 1000;
+                font-size: 0.85rem;
+                transition: all 0.3s ease;
+            }
+            
+            .connection-indicator.connected {
+                background: var(--accent-green);
+                color: white;
+                box-shadow: 0 4px 20px var(--glow-green);
+            }
+            
+            .connection-indicator.connecting {
+                background: var(--accent-beer);
+                color: var(--bg-primary);
+                box-shadow: 0 4px 20px var(--glow-beer);
+            }
+            
+            .connection-indicator.disconnected {
+                background: var(--accent-red);
+                color: white;
+                box-shadow: 0 4px 20px rgba(255, 87, 87, 0.4);
+            }
+            
             .recording-dot {
                 width: 8px;
                 height: 8px;
@@ -671,6 +704,12 @@ def get_main_html_template(text_only_mode=False):
         <div class="background-pattern"></div>
         {recording_indicator_html}
         
+        <!-- Connection Status Indicator -->
+        <div class="connection-indicator disconnected" id="connectionIndicator">
+            <div class="recording-dot" id="connectionDot"></div>
+            <span id="connectionText">Disconnected</span>
+        </div>
+        
         <!-- Personality Selection Overlay -->
         <div class="personality-overlay" id="personalityOverlay">
             <div class="personality-modal">
@@ -764,6 +803,11 @@ def get_main_html_template(text_only_mode=False):
             let availablePersonalities = [];
             let selectedPersonality = null;
             let textChatEnabled = false;
+            let ws = null;
+            let connectionStatus = 'disconnected';
+            let reconnectAttempts = 0;
+            let maxReconnectAttempts = 5;
+            let reconnectDelay = 1000;
             
             {recording_js}
             
@@ -778,45 +822,107 @@ def get_main_html_template(text_only_mode=False):
                 input.disabled = true;
                 sendBtn.disabled = true;
                 
-                fetch('/send_text_message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: message
-                    })
-                })
-                .then(response => {
-                    if (response.ok) {
-                        input.value = ''; // Clear input on success
-                    } else {
-                        console.log('Failed to send text message');
-                    }
-                })
-                .catch(error => {
-                    console.log('Error sending text message:', error);
-                })
-                .finally(() => {
-                    // Re-enable input and button
-                    input.disabled = false;
-                    sendBtn.disabled = false;
-                    input.focus();
-                });
+                if (sendWebSocketMessage('send_text_message', { message: message })) {
+                    input.value = ''; // Clear input on success
+                } else {
+                    console.log('Failed to send text message - no WebSocket connection');
+                }
+                
+                // Re-enable input and button
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
             }
             
             let lastMessageCount = 0;
             let lastStatus = '';
             
+            // WebSocket connection and messaging
+            function connectWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.hostname}:${parseInt(window.location.port) + 1}`;
+                
+                connectionStatus = 'connecting';
+                updateConnectionStatus();
+                
+                try {
+                    ws = new WebSocket(wsUrl);
+                    
+                    ws.onopen = function(event) {
+                        console.log('WebSocket connected');
+                        connectionStatus = 'connected';
+                        reconnectAttempts = 0;
+                        updateConnectionStatus();
+                    };
+                    
+                    ws.onmessage = function(event) {
+                        try {
+                            const message = JSON.parse(event.data);
+                            handleWebSocketMessage(message);
+                        } catch (error) {
+                            console.error('Error parsing WebSocket message:', error);
+                        }
+                    };
+                    
+                    ws.onclose = function(event) {
+                        console.log('WebSocket disconnected');
+                        connectionStatus = 'disconnected';
+                        updateConnectionStatus();
+                        
+                        // Attempt to reconnect
+                        if (reconnectAttempts < maxReconnectAttempts) {
+                            reconnectAttempts++;
+                            setTimeout(() => {
+                                console.log(`Reconnecting... Attempt ${reconnectAttempts}`);
+                                connectWebSocket();
+                            }, reconnectDelay * reconnectAttempts);
+                        }
+                    };
+                    
+                    ws.onerror = function(error) {
+                        console.error('WebSocket error:', error);
+                        connectionStatus = 'error';
+                        updateConnectionStatus();
+                    };
+                    
+                } catch (error) {
+                    console.error('Failed to create WebSocket:', error);
+                    connectionStatus = 'error';
+                    updateConnectionStatus();
+                }
+            }
+            
+            function sendWebSocketMessage(action, data = {}) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    const message = {
+                        action: action,
+                        data: data
+                    };
+                    ws.send(JSON.stringify(message));
+                    return true;
+                } else {
+                    console.warn('WebSocket not connected, cannot send message:', action);
+                    return false;
+                }
+            }
+            
+            function handleWebSocketMessage(message) {
+                switch (message.type) {
+                    case 'state_update':
+                        updateInterface(message.data);
+                        break;
+                    case 'personalities_list':
+                        availablePersonalities = message.data.personalities;
+                        populatePersonalityDropdown();
+                        break;
+                    default:
+                        console.log('Unknown message type:', message.type);
+                }
+            }
+            
             // Load personalities on page load
             function loadPersonalities() {
-                fetch('/personalities')
-                    .then(response => response.json())
-                    .then(data => {
-                        availablePersonalities = data.personalities;
-                        populatePersonalityDropdown();
-                    })
-                    .catch(error => console.log('Failed to load personalities:', error));
+                sendWebSocketMessage('get_personalities');
             }
             
             function populatePersonalityDropdown() {
@@ -852,29 +958,13 @@ def get_main_html_template(text_only_mode=False):
                 // Hide overlay immediately when button is clicked
                 document.getElementById('personalityOverlay').classList.add('hidden');
                 
-                fetch('/select_personality', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        personality: selectedPersonality
-                    })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        // Show overlay again if there was an error
-                        document.getElementById('personalityOverlay').classList.remove('hidden');
-                        throw new Error('Failed to set personality');
-                    }
-                })
-                .catch(error => {
-                    console.log('Error setting personality:', error);
+                if (!sendWebSocketMessage('select_personality', { personality: selectedPersonality })) {
+                    // Show overlay again if WebSocket is not connected
+                    document.getElementById('personalityOverlay').classList.remove('hidden');
                     confirmBtn.textContent = 'Try Again';
                     confirmBtn.disabled = false;
-                    // Show overlay again on error
-                    document.getElementById('personalityOverlay').classList.remove('hidden');
-                });
+                    console.log('Error setting personality: No WebSocket connection');
+                }
             }
             
             function resetPersonalitySelection() {
@@ -891,10 +981,41 @@ def get_main_html_template(text_only_mode=False):
                 selectedPersonality = null;
             }
             
-            function updateInterface() {
-                fetch('/status')
-                    .then(response => response.json())
-                    .then(data => {
+            function updateConnectionStatus() {
+                const indicator = document.getElementById('connectionIndicator');
+                const text = document.getElementById('connectionText');
+                
+                if (!indicator || !text) return;
+                
+                // Remove all status classes
+                indicator.classList.remove('connected', 'connecting', 'disconnected');
+                
+                switch (connectionStatus) {
+                    case 'connected':
+                        indicator.classList.add('connected');
+                        text.textContent = 'Connected';
+                        break;
+                    case 'connecting':
+                        indicator.classList.add('connecting');
+                        text.textContent = 'Connecting...';
+                        break;
+                    case 'disconnected':
+                        indicator.classList.add('disconnected');
+                        text.textContent = 'Disconnected';
+                        break;
+                    case 'error':
+                        indicator.classList.add('disconnected');
+                        text.textContent = 'Connection Error';
+                        break;
+                    default:
+                        indicator.classList.add('disconnected');
+                        text.textContent = 'Unknown';
+                }
+                
+                console.log('Connection status:', connectionStatus);
+            }
+            
+            function updateInterface(data) {
                         // Only update status if it changed
                         if (data.status !== lastStatus) {
                             const statusElement = document.getElementById('status');
@@ -1027,8 +1148,6 @@ def get_main_html_template(text_only_mode=False):
                         } else {
                             textChatContainer.style.display = 'none';
                         }
-                    })
-                    .catch(error => console.log('Status update failed:', error));
             }
             
             function getStatusIcon(status) {
@@ -1061,10 +1180,9 @@ def get_main_html_template(text_only_mode=False):
             
             
             // Initialize on page load
-            loadPersonalities();
+            connectWebSocket();
             setupTextChatListeners();
-            setInterval(updateInterface, 1000);
-            updateInterface();
+            loadPersonalities();
         </script>
     </body>
     </html>
