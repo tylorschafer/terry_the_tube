@@ -1,7 +1,3 @@
-"""
-File Cleanup Utilities for Terry the Tube
-Refactored and improved cleanup functionality
-"""
 import os
 import glob
 import shutil
@@ -13,7 +9,6 @@ from .display import display
 
 class FileCleanup:
     def __init__(self):
-        """Initialize file cleanup utility"""
         self.directories_to_clean = []  # No directories to clean automatically now - all files saved in sessions
         self.transcript_directory = TRANSCRIPTS_DIR
         self.recordings_directory = RECORDINGS_DIR

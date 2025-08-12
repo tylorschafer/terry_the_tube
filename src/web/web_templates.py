@@ -602,30 +602,21 @@ def get_main_html_template(text_only_mode=False):
                 transform: translateY(0);
             }
             
+            /* Text Chat Styles */
             .text-chat-container {
-                display: none;
-                background: var(--bg-secondary);
-                border-radius: 20px;
-                border: 1px solid var(--border);
-                box-shadow: 0 8px 32px var(--shadow);
-                backdrop-filter: blur(10px);
-                margin-bottom: 1rem;
-                overflow: hidden;
+                margin-top: 1rem;
+                animation: fadeIn 0.3s ease-out;
             }
             
-            .text-chat-container.enabled {
-                display: block;
-            }
-            
-            .text-chat-form {
+            .text-chat-input-group {
                 display: flex;
-                padding: 1rem;
                 gap: 0.5rem;
+                align-items: stretch;
             }
             
-            .text-input {
+            .text-chat-input {
                 flex: 1;
-                padding: 1rem 1.5rem;
+                padding: 1rem;
                 font-size: 1rem;
                 background: var(--bg-tertiary);
                 color: var(--text-primary);
@@ -633,54 +624,46 @@ def get_main_html_template(text_only_mode=False):
                 border-radius: 12px;
                 outline: none;
                 transition: all 0.3s ease;
-                font-family: inherit;
             }
             
-            .text-input::placeholder {
+            .text-chat-input::placeholder {
                 color: var(--text-muted);
             }
             
-            .text-input:focus {
-                border-color: var(--accent-beer);
-                box-shadow: 0 0 20px var(--glow-beer);
+            .text-chat-input:focus {
+                border-color: var(--accent-green);
+                box-shadow: 0 0 20px var(--glow-green);
             }
             
-            .send-button {
-                padding: 1rem 2rem;
-                font-size: 1rem;
-                font-weight: 600;
-                background: linear-gradient(45deg, var(--accent-beer), #cc8800);
-                color: var(--bg-primary);
+            .text-chat-send-btn {
+                width: 60px;
+                height: 60px;
+                background: linear-gradient(45deg, var(--accent-green), #00b894);
+                color: var(--text-primary);
                 border: none;
                 border-radius: 12px;
                 cursor: pointer;
                 transition: all 0.3s ease;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
                 display: flex;
                 align-items: center;
-                gap: 0.5rem;
+                justify-content: center;
+                font-size: 1.2rem;
             }
             
-            .send-button:hover {
-                background: linear-gradient(45deg, #cc8800, var(--accent-beer));
+            .text-chat-send-btn:hover {
+                background: linear-gradient(45deg, #00b894, var(--accent-green));
                 transform: translateY(-2px);
-                box-shadow: 0 8px 30px var(--glow-beer);
+                box-shadow: 0 8px 25px var(--glow-green);
             }
             
-            .send-button:disabled {
+            .text-chat-send-btn:active {
+                transform: translateY(0);
+            }
+            
+            .text-chat-send-btn:disabled {
                 opacity: 0.5;
                 cursor: not-allowed;
                 transform: none;
-            }
-            
-            .text-chat-toggle {
-                text-align: center;
-                padding: 0.5rem;
-                font-size: 0.8rem;
-                color: var(--text-muted);
-                background: var(--bg-tertiary);
-                border-top: 1px solid var(--border);
             }
         </style>
     </head>
@@ -740,20 +723,36 @@ def get_main_html_template(text_only_mode=False):
                         <span>Generating voice...</span>
                     </div>
                 </div>
+                <div class="tts-loading" id="responseLoading">
+                    <div class="tts-loading-text">
+                        <div class="spinner"></div>
+                        <span>Generating response...</span>
+                    </div>
+                </div>
             </div>
             
-            <div class="text-chat-container" id="textChatContainer">
-                <form class="text-chat-form" id="textChatForm">
-                    <input type="text" class="text-input" id="textInput" 
-                           placeholder="Type your message here... (testing mode)" 
-                           maxlength="500" autocomplete="off">
-                    <button type="submit" class="send-button" id="sendButton">
-                        <i class="fas fa-paper-plane"></i>
-                        <span>Send</span>
-                    </button>
-                </form>
-                <div class="text-chat-toggle">
-                    <i class="fas fa-keyboard"></i> Text Chat Mode Enabled (Testing)
+            <div class="controls">
+                <button class="talk-button" id="talkButton" 
+                        onmousedown="startRecording()" 
+                        onmouseup="stopRecording()"
+                        ontouchstart="startRecording()" 
+                        ontouchend="stopRecording()">
+                    <i class="fas fa-microphone"></i>
+                    <span>Hold to Talk</span>
+                </button>
+                
+                <!-- Text Chat Interface -->
+                <div class="text-chat-container" id="textChatContainer" style="display: none;">
+                    <div class="text-chat-input-group">
+                        <input type="text" 
+                               class="text-chat-input" 
+                               id="textChatInput" 
+                               placeholder="Type your message here..."
+                               maxlength="500">
+                        <button class="text-chat-send-btn" id="textChatSendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -769,16 +768,15 @@ def get_main_html_template(text_only_mode=False):
             {recording_js}
             
             function sendTextMessage() {
-                const textInput = document.getElementById('textInput');
-                const sendButton = document.getElementById('sendButton');
-                const message = textInput.value.trim();
+                const input = document.getElementById('textChatInput');
+                const sendBtn = document.getElementById('textChatSendBtn');
+                const message = input.value.trim();
                 
-                if (!message) return false;
+                if (!message) return;
                 
-                // Disable input while processing
-                textInput.disabled = true;
-                sendButton.disabled = true;
-                sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Sending</span>';
+                // Disable input and button while sending
+                input.disabled = true;
+                sendBtn.disabled = true;
                 
                 fetch('/send_text_message', {
                     method: 'POST',
@@ -791,23 +789,20 @@ def get_main_html_template(text_only_mode=False):
                 })
                 .then(response => {
                     if (response.ok) {
-                        textInput.value = '';
+                        input.value = ''; // Clear input on success
                     } else {
-                        throw new Error('Failed to send message');
+                        console.log('Failed to send text message');
                     }
                 })
                 .catch(error => {
                     console.log('Error sending text message:', error);
                 })
                 .finally(() => {
-                    // Re-enable input
-                    textInput.disabled = false;
-                    sendButton.disabled = false;
-                    sendButton.innerHTML = '<i class="fas fa-paper-plane"></i><span>Send</span>';
-                    textInput.focus();
+                    // Re-enable input and button
+                    input.disabled = false;
+                    sendBtn.disabled = false;
+                    input.focus();
                 });
-                
-                return false; // Prevent form submission
             }
             
             let lastMessageCount = 0;
@@ -854,6 +849,9 @@ def get_main_html_template(text_only_mode=False):
                 confirmBtn.textContent = 'Starting...';
                 confirmBtn.disabled = true;
                 
+                // Hide overlay immediately when button is clicked
+                document.getElementById('personalityOverlay').classList.add('hidden');
+                
                 fetch('/select_personality', {
                     method: 'POST',
                     headers: {
@@ -864,9 +862,9 @@ def get_main_html_template(text_only_mode=False):
                     })
                 })
                 .then(response => {
-                    if (response.ok) {
-                        document.getElementById('personalityOverlay').classList.add('hidden');
-                    } else {
+                    if (!response.ok) {
+                        // Show overlay again if there was an error
+                        document.getElementById('personalityOverlay').classList.remove('hidden');
                         throw new Error('Failed to set personality');
                     }
                 })
@@ -874,6 +872,8 @@ def get_main_html_template(text_only_mode=False):
                     console.log('Error setting personality:', error);
                     confirmBtn.textContent = 'Try Again';
                     confirmBtn.disabled = false;
+                    // Show overlay again on error
+                    document.getElementById('personalityOverlay').classList.remove('hidden');
                 });
             }
             
@@ -917,6 +917,14 @@ def get_main_html_template(text_only_mode=False):
                             ttsLoading.classList.add('show');
                         } else {
                             ttsLoading.classList.remove('show');
+                        }
+                        
+                        // Handle response loading spinner
+                        const responseLoading = document.getElementById('responseLoading');
+                        if (data.generating_response) {
+                            responseLoading.classList.add('show');
+                        } else {
+                            responseLoading.classList.remove('show');
                         }
                         
                         // Only update messages if new ones were added
@@ -1002,23 +1010,22 @@ def get_main_html_template(text_only_mode=False):
                             // Update personality display
                             personalityDisplay.textContent = `${data.personality.short_name} Bartender`;
                         } else if (!data.personality_selected) {
-                            // Show overlay if no personality selected
-                            overlay.classList.remove('hidden');
-                            // Reset dropdown and button for new cycle
-                            resetPersonalitySelection();
+                            // Show overlay if no personality selected (only if it's currently hidden)
+                            if (overlay.classList.contains('hidden')) {
+                                overlay.classList.remove('hidden');
+                                // Reset dropdown and button for new cycle only when showing overlay
+                                resetPersonalitySelection();
+                            }
                             // Reset personality display to default
                             personalityDisplay.textContent = 'Your AI Bartender';
                         }
                         
-                        // Handle text chat visibility based on server setting
+                        // Show/hide text chat based on configuration
                         const textChatContainer = document.getElementById('textChatContainer');
-                        if (data.text_chat_enabled !== undefined) {
-                            textChatEnabled = data.text_chat_enabled;
-                            if (textChatEnabled) {
-                                textChatContainer.classList.add('enabled');
-                            } else {
-                                textChatContainer.classList.remove('enabled');
-                            }
+                        if (data.text_chat_enabled) {
+                            textChatContainer.style.display = 'block';
+                        } else {
+                            textChatContainer.style.display = 'none';
                         }
                     })
                     .catch(error => console.log('Status update failed:', error));
@@ -1032,17 +1039,30 @@ def get_main_html_template(text_only_mode=False):
                 return 'fas fa-check-circle';
             }
             
+            
+            function setupTextChatListeners() {
+                const input = document.getElementById('textChatInput');
+                const sendBtn = document.getElementById('textChatSendBtn');
+                
+                // Send on button click
+                sendBtn.addEventListener('click', sendTextMessage);
+                
+                // Send on Enter key press
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendTextMessage();
+                    }
+                });
+            }
+            
             // Add event listener for confirm button
             document.getElementById('confirmPersonalityBtn').addEventListener('click', confirmPersonalitySelection);
             
-            // Add event listener for text chat form
-            document.getElementById('textChatForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                sendTextMessage();
-            });
             
             // Initialize on page load
             loadPersonalities();
+            setupTextChatListeners();
             setInterval(updateInterface, 1000);
             updateInterface();
         </script>

@@ -2,11 +2,8 @@
 """
 Terry the Tube - AI-powered Beer Dispensing System
 Main entry point for the application
-
-A sarcastic beer-dispensing tube that interacts with users through voice,
-requires them to answer questions before dispensing beer, and uses 
-advanced TTS and STT capabilities.
 """
+
 import sys
 import argparse
 import os
@@ -20,20 +17,17 @@ from src.personalities import get_personality_names
 
 
 def main():
-    """Main entry point"""
     parser = argparse.ArgumentParser(
         description='Terry the Tube - AI Beer Dispenser',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  python main.py                                    # Run with web interface (default)
-  python main.py --mode web                         # Run with web interface  
-  python main.py --mode terminal                    # Run in terminal-only mode
-  python main.py --personality sarcastic_comedian  # Use specific personality
-  python main.py --mode terminal --personality passive_aggressive_librarian
-  python main.py --enable-text-chat                # Enable text chat for testing
-  python main.py --text-only                      # Fast text-only testing mode
-  python main.py --info                            # Show system information
+            Examples:
+            python main.py                                    # Run with web interface (default)
+            python main.py --mode web                         # Run with web interface  
+            python main.py --mode terminal                    # Run in terminal-only mode
+            python main.py --personality sarcastic_comedian  # Use specific personality
+            python main.py --mode terminal --personality passive_aggressive_librarian
+            python main.py --info                            # Show system information
         """
     )
     

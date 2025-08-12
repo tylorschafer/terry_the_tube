@@ -16,7 +16,6 @@ from utils.display import display
 
 class ConversationManager:
     def __init__(self, ai_handler, audio_handler, web_interface=None):
-        """Initialize conversation manager"""
         self.ai_handler = ai_handler
         self.audio_handler = audio_handler
         self.web_interface = web_interface
@@ -26,9 +25,12 @@ class ConversationManager:
         self.question_count = 0  # Start at 0, greeting doesn't count as a question
         self.current_session_folder = None
         self.first_user_message_timestamp = None
+        
+        # Set personality for audio handler
+        if hasattr(self.audio_handler, 'set_personality') and hasattr(self.ai_handler, 'personality_key'):
+            self.audio_handler.set_personality(self.ai_handler.personality_key)
     
     def start_conversation(self):
-        """Start a new conversation with greeting"""
         self.conversation_history = []
         self.beer_dispensed = False
         self.conversation_active = True
@@ -58,21 +60,18 @@ class ConversationManager:
             self.web_interface.set_status("Ready to serve beer!")
     
     def prepare_session_if_needed(self):
-        """Create session folder if this is the first user interaction"""
         if self.first_user_message_timestamp is None:
             self.first_user_message_timestamp = time.strftime("%Y%m%d_%H%M%S")
             self.current_session_folder = os.path.join(RECORDINGS_DIR, self.first_user_message_timestamp)
             self._create_session_folder()
     
     def add_user_message(self, message):
-        """Add user message to conversation history"""
         self.conversation_history.append(f"Human: {message}")
         
         # Ensure session is prepared (this will be a no-op if already done)
         self.prepare_session_if_needed()
     
     def _create_session_folder(self):
-        """Create folder for current conversation session"""
         if self.current_session_folder and not os.path.exists(self.current_session_folder):
             os.makedirs(self.current_session_folder)
             display.session_start(self.first_user_message_timestamp)
@@ -84,11 +83,9 @@ class ConversationManager:
                 self.audio_handler.set_tts_session_folder(self.current_session_folder)
     
     def get_current_session_folder(self):
-        """Get the current session folder path"""
         return self.current_session_folder
     
     def generate_and_handle_response(self):
-        """Generate AI response and handle special commands"""
         if not self.conversation_active:
             return
         
@@ -97,7 +94,7 @@ class ConversationManager:
             display.conversation_question(self.question_count, total=3)
             display.thinking()
             
-            # Set generating response status to show spinner
+            # Set generating response status for web interface
             if self.web_interface:
                 self.web_interface.set_generating_response(True)
                 self.web_interface.set_status("Generating response...")
@@ -105,11 +102,6 @@ class ConversationManager:
             response = self.ai_handler.generate_response(self.conversation_history, self.question_count)
             self.conversation_history.append(f"AI: {response}")
             self.question_count += 1
-            
-            # Clear generating response status
-            if self.web_interface:
-                self.web_interface.set_generating_response(False)
-
             
             # Clean response of asterisks
             cleaned_response = response.replace("*", "")
@@ -119,12 +111,13 @@ class ConversationManager:
             # Handle web interface message display with loading spinner
             message_index = None
             if self.web_interface:
-                # Set generating audio status to show spinner
-                self.web_interface.set_generating_audio(True)
-                self.web_interface.set_status("Generating voice...")
-                
-                # Add message but don't show it immediately (will show when audio starts)
+                # First, add the hidden message before changing any states
                 message_index = self.web_interface.add_pending_message("Terry", cleaned_response, is_ai=True)
+                
+                # Then transition directly from generating response to generating audio to prevent flash
+                self.web_interface.set_generating_audio(True)
+                self.web_interface.set_generating_response(False) 
+                self.web_interface.set_status("Generating voice...")
             
             display.speaking()
             
@@ -149,7 +142,6 @@ class ConversationManager:
             self.handle_error_recovery()
     
     def dispense_beer(self):
-        """Handle beer dispensing logic"""
         self.beer_dispensed = True
         display.beer_dispensed()
         
@@ -157,7 +149,6 @@ class ConversationManager:
             self.web_interface.set_status(BEER_DISPENSED_MESSAGE)
     
     def end_conversation(self):
-        """End current conversation and prepare for next customer"""
         display.conversation_end()
         
         if self.web_interface:
@@ -170,14 +161,12 @@ class ConversationManager:
             self.start_conversation()
     
     def _prepare_next_cycle(self):
-        """Prepare for next conversation cycle in web mode"""
         if self.web_interface:
             self.web_interface.clear_messages()
             self.web_interface.reset_personality_selection()
             self.web_interface.set_status("Select a personality to continue")
     
     def handle_error_recovery(self):
-        """Handle errors by restarting conversation"""
         display.error("Please make sure Ollama is running properly")
         
         if self.web_interface:
@@ -192,32 +181,20 @@ class ConversationManager:
         self._restart_conversation_with_recovery()
     
     def _generate_and_play_tts(self, text, message_index=None):
-        """Generate TTS and show message when audio starts playing"""
-        # Check if we're in text-only mode
-        if self.web_interface and self.web_interface.is_text_only_mode():
-            # In text-only mode, show message immediately and skip TTS
-            if message_index is not None:
-                self.web_interface.show_message(message_index)
-            self.web_interface.set_generating_audio(False)
-            self.web_interface.set_status("Ready to serve beer!")
-        else:
-            # Normal mode with TTS
-            def on_audio_starts():
-                """Callback when audio playback starts"""
-                if self.web_interface:
-                    # Show the message now that audio is starting to play
-                    if message_index is not None:
-                        self.web_interface.show_message(message_index)
-                    
-                    # Clear generating status and update to speaking status
-                    self.web_interface.set_generating_audio(False)
-                    self.web_interface.set_status("Speaking...")
-            
-            # Generate and play TTS with callback that triggers when playback starts
-            self.audio_handler.text_to_speech_with_callback(text, on_audio_starts)
+        def on_audio_starts():
+            if self.web_interface:
+                # Show the message now that audio is starting to play
+                if message_index is not None:
+                    self.web_interface.show_message(message_index)
+                
+                # Clear generating status and update to speaking status
+                self.web_interface.set_generating_audio(False)
+                self.web_interface.set_status("Speaking...")
+        
+        # Generate and play TTS with callback that triggers when playback starts
+        self.audio_handler.text_to_speech_with_callback(text, on_audio_starts)
     
     def _restart_conversation_with_recovery(self):
-        """Helper method for conversation recovery"""
         display.warning("Restarting conversation...")
         
         recovery_message = "Sorry about that. Let's start over. You looking for a beer or what?"
@@ -239,15 +216,12 @@ class ConversationManager:
             self.web_interface.set_status("Ready to serve beer!")
     
     def is_conversation_active(self):
-        """Check if conversation is currently active"""
         return self.conversation_active
     
     def get_conversation_history(self):
-        """Get current conversation history"""
         return self.conversation_history.copy()
     
     def reset_conversation(self):
-        """Reset conversation state"""
         self.conversation_history = []
         self.beer_dispensed = False
         self.conversation_active = True

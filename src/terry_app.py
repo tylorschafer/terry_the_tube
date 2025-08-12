@@ -18,7 +18,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from config import (
     STT_ERROR_MESSAGE, STT_TECHNICAL_ERROR, 
-    TRANSCRIPTION_FAILED_ERROR, RECORDING_FAILED_WEB_ERROR
+    TRANSCRIPTION_FAILED_ERROR, RECORDING_FAILED_WEB_ERROR,
+    ENABLE_TEXT_CHAT, TEXT_CHAT_ONLY
 )
 
 # Filter out TTS/Whisper warnings
@@ -43,8 +44,8 @@ class TerryTubeApp:
         if self.use_web_gui:
             self.web_interface = WebInterface(
                 message_callback=self.handle_web_action,
-                enable_text_chat=self.enable_text_chat,
-                text_only_mode=self.text_only_mode
+                enable_text_chat=ENABLE_TEXT_CHAT,
+                text_only_mode=TEXT_CHAT_ONLY
             )
             # Set initial personality info
             if self.ai_handler:
@@ -57,13 +58,9 @@ class TerryTubeApp:
         try:
             display.section("Initializing Components")
             
-            # Initialize audio manager (mock for text-only mode)
-            if self.text_only_mode:
-                display.component_init("Mock Audio Manager (Text-Only)")
-                self.audio_manager = MockAudioManager()
-            else:
-                display.component_init("Audio Manager")
-                self.audio_manager = AudioManager()
+            # Initialize audio manager
+            display.component_init("Audio Manager")
+            self.audio_manager = AudioManager()
             
             # Initialize AI handler with personality
             display.component_init("AI Handler")
@@ -255,6 +252,10 @@ class TerryTubeApp:
             
             # Store the current personality key
             self.personality_key = personality_key
+            
+            # Update audio manager with new personality
+            if hasattr(self.audio_manager, 'set_personality'):
+                self.audio_manager.set_personality(personality_key)
             
             # Update web interface with new personality info (marked as user-selected)
             if self.web_interface:

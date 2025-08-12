@@ -101,7 +101,7 @@ python main.py --info
 
 The system is easily configurable via `config.py`:
 - **AI Model**: Change `OLLAMA_MODEL` to use different models
-- **TTS Models**: Modify `TTS_MODELS_TO_TRY` for different voice options  
+- **TTS Voice**: Choose from 6 OpenAI voices (alloy, echo, fable, onyx, nova, shimmer)
 - **Personality**: Adjust the AI prompt for different personalities
 - **Audio Settings**: Configure recording and playback parameters
 

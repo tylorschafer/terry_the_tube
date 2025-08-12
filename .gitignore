@@ -10,5 +10,4 @@ pyvenv.cfg
 lib/
 bin/
 __pycache__/
-xtts_models
-xtts_server_env
+.env
