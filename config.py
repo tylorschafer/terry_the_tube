@@ -18,7 +18,7 @@ except ImportError:
     print("python-dotenv not installed - using system environment variables only")
 
 # AI Model Configuration
-USE_OPENAI_CHAT = False  # Use OpenAI GPT for chat generation (paid service)
+USE_OPENAI_CHAT = True  # Use OpenAI GPT for chat generation (paid service)
 OPENAI_CHAT_MODEL = "gpt-4.1-mini"  # OpenAI chat model
 OPENAI_CHAT_TIMEOUT = 30
 
