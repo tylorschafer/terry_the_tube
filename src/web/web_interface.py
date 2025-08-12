@@ -4,6 +4,13 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from config import WEB_PORT, WEB_HOST
 
+# Import the new modular template system
+try:
+    from .web_templates_new import get_main_html_template
+except ImportError:
+    # Fallback to old system if new one not available
+    from .web_templates import get_main_html_template
+
 
 class WebInterface:
     def __init__(self, message_callback=None, enable_text_chat=False, text_only_mode=False):
@@ -109,3 +116,7 @@ class WebInterface:
         """Notify WebSocket clients of state changes"""
         if self.websocket_manager:
             self.websocket_manager.notify_state_change()
+    
+    def get_html_template(self):
+        """Get the HTML template for the web interface"""
+        return get_main_html_template(text_only_mode=self.text_only_mode)

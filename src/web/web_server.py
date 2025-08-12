@@ -1,7 +1,6 @@
 import json
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from .web_templates import get_main_html_template
 from .websocket_server import WebSocketManager
 import sys
 import os
@@ -37,10 +36,8 @@ class WebHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
         
-        # Check if we're in text-only mode
-        text_only_mode = hasattr(self.server, 'web_interface') and self.server.web_interface.is_text_only_mode()
-        
-        html = get_main_html_template(text_only_mode=text_only_mode)
+        # Use the web interface's HTML template method
+        html = self.server.web_interface.get_html_template()
         self.wfile.write(html.encode())
     
     def _serve_status(self):

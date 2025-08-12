@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terry the Tube - AI Beer Dispenser</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Include styles from separate CSS file */
+        {STYLES_PLACEHOLDER}
+    </style>
+</head>
+<body>
+    <div class="background-pattern"></div>
+    {RECORDING_INDICATOR_HTML}
+    
+    <!-- Connection Status Indicator -->
+    <div class="connection-indicator disconnected" id="connectionIndicator">
+        <div class="recording-dot" id="connectionDot"></div>
+        <span id="connectionText">Disconnected</span>
+    </div>
+    
+    <!-- Personality Selection Overlay -->
+    <div class="personality-overlay" id="personalityOverlay">
+        <div class="personality-modal">
+            <h2>Select Terry's Personality</h2>
+            <p>Choose how Terry will interact with you today. Each personality offers a unique beer-dispensing experience!</p>
+            
+            <select class="personality-dropdown" id="personalityDropdown">
+                <option value="">Loading personalities...</option>
+            </select>
+            
+            <button class="confirm-btn" id="confirmPersonalityBtn" disabled>
+                Start Your Beer Journey
+            </button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1 class="title">TERRY THE TUBE</h1>
+            <p class="subtitle">Your AI Beer Dispenser</p>
+        </div>
+        
+        <div class="status-card">
+            <div class="status" id="status">
+                <i class="fas fa-beer"></i>
+                <span>Ready to serve beer!</span>
+            </div>
+        </div>
+        
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="chat-avatar">T</div>
+                <div class="chat-info">
+                    <h3>Terry</h3>
+                    <p id="personalityDisplay">Your AI Bartender</p>
+                </div>
+            </div>
+            <div class="messages" id="messages">
+                <!-- Messages will be added dynamically -->
+            </div>
+            <div class="response-loading" id="responseLoading">
+                <div class="response-loading-text">
+                    <div class="spinner"></div>
+                    <span>Generating response...</span>
+                </div>
+            </div>
+            <div class="tts-loading" id="ttsLoading">
+                <div class="tts-loading-text">
+                    <div class="spinner"></div>
+                    <span>Generating voice...</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            {TALK_BUTTON_HTML}
+            
+            <!-- Text Chat Interface -->
+            <div class="text-chat-container" id="textChatContainer" style="display: none;">
+                <div class="text-chat-input-group">
+                    <input type="text" 
+                           class="text-chat-input" 
+                           id="textChatInput" 
+                           placeholder="Type your message here..."
+                           maxlength="500">
+                    <button class="text-chat-send-btn" id="textChatSendBtn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript modules -->
+    <script>
+        {STATE_MANAGER_JS}
+    </script>
+    
+    <script>
+        {UI_CONTROLLER_JS}
+    </script>
+    
+    <script>
+        {WEBSOCKET_MANAGER_JS}
+    </script>
+    
+    <script>
+        {APP_CONTROLLER_JS}
+    </script>
+    
+    <script>
+        // Initialize global instances
+        const appState = new AppState();
+        const uiController = new UIController();
+        const appController = new AppController();
+        
+        // Make functions available globally for HTML onclick handlers
+        window.startRecording = () => appController.startRecording();
+        window.stopRecording = () => appController.stopRecording();
+        window.populatePersonalityDropdown = () => appController.populatePersonalityDropdown();
+        
+        // Initialize application when DOM is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => appController.init());
+        } else {
+            appController.init();
+        }
+    </script>
+</body>
+</html>
