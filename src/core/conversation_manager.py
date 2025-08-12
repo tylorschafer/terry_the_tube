@@ -99,10 +99,6 @@ class ConversationManager:
             self.conversation_history.append(f"AI: {response}")
             self.question_count += 1
             
-            # Clear generating response status
-            if self.web_interface:
-                self.web_interface.set_generating_response(False)
-            
             # Clean response of asterisks
             cleaned_response = response.replace("*", "")
             
@@ -111,12 +107,13 @@ class ConversationManager:
             # Handle web interface message display with loading spinner
             message_index = None
             if self.web_interface:
-                # Set generating audio status to show spinner
-                self.web_interface.set_generating_audio(True)
-                self.web_interface.set_status("Generating voice...")
-                
-                # Add message but don't show it immediately (will show when audio starts)
+                # First, add the hidden message before changing any states
                 message_index = self.web_interface.add_pending_message("Terry", cleaned_response, is_ai=True)
+                
+                # Then transition directly from generating response to generating audio to prevent flash
+                self.web_interface.set_generating_audio(True)
+                self.web_interface.set_generating_response(False) 
+                self.web_interface.set_status("Generating voice...")
             
             display.speaking()
             

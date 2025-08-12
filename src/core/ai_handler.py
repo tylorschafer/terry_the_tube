@@ -23,7 +23,7 @@ class AIHandler:
             self.personality_config = get_personality_by_key(self.personality_key)
             if not self.personality_config:
                 raise ValueError(f"Unknown personality: {self.personality_key}")
-            
+        
             # Initialize AI clients
             self.use_openai = USE_OPENAI_CHAT
             self.openai_client = None
