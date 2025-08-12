@@ -84,40 +84,39 @@ class AppState {
         this.scheduleRender(path);
     }
     
-    // Update multiple state values atomically
+    // Update multiple state values atomically using ES6+ features
     update(updates) {
-        const changes = [];
-        
-        Object.entries(updates).forEach(([path, value]) => {
+        const changes = Object.entries(updates).map(([path, value]) => {
             const oldValue = this.get(path);
             this.setNestedValue(this.state, path, value);
-            changes.push({ path, value, oldValue });
+            return { path, value, oldValue };
         });
         
-        // Notify all changes
+        // Notify all changes using forEach with destructuring
         changes.forEach(({ path, value, oldValue }) => {
             this.notify(path, value, oldValue);
             this.scheduleRender(path);
         });
     }
     
-    // Helper to get nested object values
+    // Helper to get nested object values using optional chaining
     getNestedValue(obj, path) {
         return path.split('.').reduce((current, key) => current?.[key], obj);
     }
     
-    // Helper to set nested object values
+    // Helper to set nested object values using ES6+ features
     setNestedValue(obj, path, value) {
         const keys = path.split('.');
         const lastKey = keys.pop();
         const target = keys.reduce((current, key) => {
-            if (!current[key]) current[key] = {};
+            // Use logical nullish assignment
+            current[key] ??= {};
             return current[key];
         }, obj);
         target[lastKey] = value;
     }
     
-    // Schedule UI renders to avoid excessive DOM updates
+    // Schedule UI renders to avoid excessive DOM updates using arrow functions
     scheduleRender(path) {
         this.renderQueue.add(path);
         
@@ -131,44 +130,39 @@ class AppState {
         }
     }
     
-    // Process queued renders
+    // Process queued renders using Set and array methods
     processRenderQueue() {
-        // Group renders by component for efficiency
-        const components = new Set();
+        // Group renders by component for efficiency using Set and map
+        const components = new Set(
+            [...this.renderQueue].map(path => path.split('.')[0])
+        );
         
-        this.renderQueue.forEach(path => {
-            const component = path.split('.')[0];
-            components.add(component);
-        });
-        
-        components.forEach(component => {
-            this.renderComponent(component);
-        });
+        components.forEach(component => this.renderComponent(component));
     }
     
-    // Render specific components
+    // Render specific components using object map for cleaner code
     renderComponent(component) {
-        switch (component) {
-            case 'connection':
-                uiController.updateConnectionStatus();
-                break;
-            case 'ui':
+        const componentActions = {
+            connection: () => uiController.updateConnectionStatus(),
+            ui: () => {
                 if (this.renderQueue.has('ui.recording')) {
                     uiController.updateRecordingState();
                 }
                 if (this.renderQueue.has('ui.loadingStates')) {
                     uiController.updateLoadingStates();
                 }
-                break;
-            case 'data':
+            },
+            data: () => {
                 if (this.renderQueue.has('data.messages')) {
                     uiController.updateMessages();
                 }
                 if (this.renderQueue.has('data.currentStatus')) {
                     uiController.updateStatus();
                 }
-                break;
-        }
+            }
+        };
+        
+        componentActions[component]?.();
     }
 }
 

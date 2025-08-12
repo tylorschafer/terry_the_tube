@@ -41,46 +41,34 @@ class AppController {
         }
     }
     
-    // Initialize state change listeners for UI updates
+    // Initialize state change listeners using modern object mapping
     initializeStateListeners() {
-        // Listen for connection status changes
-        appState.subscribe('connection.status', () => {
-            uiController.updateConnectionStatus();
-        });
+        const stateListeners = {
+            'connection.status': () => uiController.updateConnectionStatus(),
+            'ui.recording': () => uiController.updateRecordingState(),
+            'ui.loadingStates': () => uiController.updateLoadingStates(),
+            'data.currentStatus': () => uiController.updateStatus(),
+            'data.messages': () => uiController.updateMessages(),
+            'ui.textChatEnabled': () => uiController.updateTextChatVisibility()
+        };
         
-        // Listen for recording state changes  
-        appState.subscribe('ui.recording', () => {
-            uiController.updateRecordingState();
-        });
-        
-        // Listen for loading state changes
-        appState.subscribe('ui.loadingStates', () => {
-            uiController.updateLoadingStates();
-        });
-        
-        // Listen for status changes
-        appState.subscribe('data.currentStatus', () => {
-            uiController.updateStatus();
-        });
-        
-        // Listen for message changes
-        appState.subscribe('data.messages', () => {
-            uiController.updateMessages();
-        });
-        
-        // Listen for text chat enable/disable
-        appState.subscribe('ui.textChatEnabled', () => {
-            uiController.updateTextChatVisibility();
+        // Use Object.entries with destructuring
+        Object.entries(stateListeners).forEach(([key, handler]) => {
+            appState.subscribe(key, handler);
         });
         
         console.log('State listeners initialized');
     }
     
-    // Setup UI event listeners
+    // Setup UI event listeners using array method
     setupEventListeners() {
-        this.setupTextChatListeners();
-        this.setupPersonalityListeners();
-        this.setupErrorBoundaries();
+        const setupMethods = [
+            this.setupTextChatListeners,
+            this.setupPersonalityListeners,
+            this.setupErrorBoundaries
+        ];
+        
+        setupMethods.forEach(method => method.call(this));
     }
     
     // Setup text chat event listeners
@@ -110,44 +98,50 @@ class AppController {
         }
     }
     
-    // Setup global error boundaries
+    // Setup global error boundaries using modern event handling
     setupErrorBoundaries() {
-        window.addEventListener('error', (event) => {
-            console.error('Global error:', event.error);
-            uiController.showError('An unexpected error occurred. Please refresh the page.');
-        });
+        const errorHandlers = {
+            error: ({ error }) => {
+                console.error('Global error:', error);
+                uiController.showError('An unexpected error occurred. Please refresh the page.');
+            },
+            unhandledrejection: ({ reason }) => {
+                console.error('Unhandled promise rejection:', reason);
+                uiController.showError('A network error occurred. Please check your connection.');
+            }
+        };
         
-        window.addEventListener('unhandledrejection', (event) => {
-            console.error('Unhandled promise rejection:', event.reason);
-            uiController.showError('A network error occurred. Please check your connection.');
+        Object.entries(errorHandlers).forEach(([event, handler]) => {
+            window.addEventListener(event, handler);
         });
     }
     
-    // Recording functions
+    // Recording functions using modern error handling
     startRecording() {
-        const currentRecording = appState.get('ui.recording');
+        const isRecording = appState.get('ui.recording');
         const connectionStatus = appState.get('connection.status');
         
+        // Early return pattern with guard clauses
         if (connectionStatus !== 'connected') {
             uiController.showError('Cannot record - not connected to server');
             return;
         }
         
-        if (!currentRecording) {
-            try {
-                appState.set('ui.recording', true);
-                
-                if (this.wsManager.sendMessage('start_recording')) {
-                    console.log('Recording started');
-                } else {
-                    // Rollback state if send failed
-                    appState.set('ui.recording', false);
-                }
-            } catch (error) {
-                console.error('Error starting recording:', error);
-                uiController.showError('Failed to start recording: ' + error.message);
-                appState.set('ui.recording', false);
+        if (isRecording) return;
+        
+        try {
+            appState.set('ui.recording', true);
+            
+            const success = this.wsManager.sendMessage('start_recording');
+            if (success) {
+                console.log('Recording started');
+            } else {
+                appState.set('ui.recording', false); // Rollback on failure
             }
+        } catch (error) {
+            console.error('Error starting recording:', error);
+            uiController.showError(`Failed to start recording: ${error.message}`);
+            appState.set('ui.recording', false);
         }
     }
     

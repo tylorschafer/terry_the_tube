@@ -5,10 +5,11 @@ class WebSocketManager {
         this.healthCheckInterval = null;
     }
     
-    // Enhanced WebSocket connection and messaging
+    // Enhanced WebSocket connection using modern JavaScript
     connect() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.hostname}:${parseInt(window.location.port) + 1}`;
+        const { hostname, port } = window.location;
+        const wsUrl = `${protocol}//${hostname}:${parseInt(port) + 1}`;
         
         // Update state
         appState.update({
@@ -20,7 +21,8 @@ class WebSocketManager {
             const newWs = new WebSocket(wsUrl);
             appState.set('connection.ws', newWs);
             
-            newWs.onopen = (event) => {
+            // Use arrow functions and destructuring for cleaner code
+            newWs.onopen = () => {
                 console.log('WebSocket connected successfully');
                 appState.update({
                     'connection.status': 'connected',
@@ -29,18 +31,14 @@ class WebSocketManager {
                     'ui.loadingStates.connecting': false
                 });
                 
-                // Start connection health monitoring
                 this.startHealthCheck();
-                
                 uiController.showError('Connected to server', 'info');
             };
             
-            newWs.onmessage = (event) => {
+            newWs.onmessage = ({ data }) => {
                 try {
-                    const message = JSON.parse(event.data);
+                    const message = JSON.parse(data);
                     this.handleMessage(message);
-                    
-                    // Update last ping time
                     appState.set('connection.lastPing', Date.now());
                 } catch (error) {
                     console.error('Error parsing WebSocket message:', error);
@@ -48,8 +46,8 @@ class WebSocketManager {
                 }
             };
             
-            newWs.onclose = (event) => {
-                console.log('WebSocket disconnected:', event.code, event.reason);
+            newWs.onclose = ({ code, reason }) => {
+                console.log('WebSocket disconnected:', code, reason);
                 const wasConnected = appState.get('connection.status') === 'connected';
                 
                 appState.update({
@@ -60,11 +58,7 @@ class WebSocketManager {
                 
                 this.stopHealthCheck();
                 
-                if (wasConnected) {
-                    uiController.showError('Disconnected from server');
-                }
-                
-                // Attempt to reconnect with exponential backoff
+                wasConnected && uiController.showError('Disconnected from server');
                 this.scheduleReconnect();
             };
             
@@ -109,29 +103,29 @@ class WebSocketManager {
         }
     }
     
-    // Connection health monitoring
+    // Connection health monitoring using modern JavaScript
     startHealthCheck() {
         this.healthCheckInterval = setInterval(() => {
             const ws = appState.get('connection.ws');
             const lastPing = appState.get('connection.lastPing');
             const currentTime = Date.now();
+            const timeSinceLastPing = currentTime - lastPing;
             
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                // Check if we haven't received any messages in the last 30 seconds
-                if (currentTime - lastPing > 30000) {
+            if (ws?.readyState === WebSocket.OPEN) {
+                // Check for stale connection
+                if (timeSinceLastPing > 30000) {
                     console.warn('Connection seems stale, sending ping...');
                     this.sendMessage('ping');
                 }
                 
-                // Update connection quality based on response times
-                const timeSinceLastPing = currentTime - lastPing;
-                let quality = 'good';
-                if (timeSinceLastPing > 10000) quality = 'poor';
-                else if (timeSinceLastPing > 5000) quality = 'fair';
+                // Determine connection quality using ternary operators
+                const quality = timeSinceLastPing > 10000 ? 'poor' 
+                             : timeSinceLastPing > 5000 ? 'fair' 
+                             : 'good';
                 
                 appState.set('connection.quality', quality);
             }
-        }, 5000); // Check every 5 seconds
+        }, 5000);
     }
     
     // Stop health check

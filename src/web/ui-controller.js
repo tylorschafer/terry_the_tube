@@ -6,7 +6,7 @@ class UIController {
         this.cacheElements();
     }
     
-    // Cache DOM elements for performance
+    // Cache DOM elements for performance using ES6+ features
     cacheElements() {
         const elementMap = {
             connectionIndicator: 'connectionIndicator',
@@ -27,12 +27,11 @@ class UIController {
             talkButton: 'talkButton'
         };
         
-        Object.entries(elementMap).forEach(([key, id]) => {
+        // Use for...of with destructuring and optional chaining
+        for (const [key, id] of Object.entries(elementMap)) {
             const element = document.getElementById(id);
-            if (element) {
-                this.elements.set(key, element);
-            }
-        });
+            element && this.elements.set(key, element);
+        }
     }
     
     // Get cached element
@@ -40,7 +39,7 @@ class UIController {
         return this.elements.get(key);
     }
     
-    // Update connection status
+    // Update connection status using modern JavaScript patterns
     updateConnectionStatus() {
         const indicator = this.getElement('connectionIndicator');
         const text = this.getElement('connectionText');
@@ -48,61 +47,52 @@ class UIController {
         if (!indicator || !text) return;
         
         const connectionState = appState.get('connection');
+        const { status, reconnectAttempts, maxReconnectAttempts } = connectionState;
         
-        // Remove all status classes
+        // Remove all status classes using spread operator
         indicator.classList.remove('connected', 'connecting', 'disconnected');
         
-        switch (connectionState.status) {
-            case 'connected':
-                indicator.classList.add('connected');
-                text.textContent = 'Connected';
-                break;
-            case 'connecting':
-                indicator.classList.add('connecting');
-                const attempts = connectionState.reconnectAttempts;
-                const maxAttempts = connectionState.maxReconnectAttempts;
-                text.textContent = `Connecting${attempts > 0 ? ` (${attempts}/${maxAttempts})` : '...'}`;
-                break;
-            case 'disconnected':
-                indicator.classList.add('disconnected');
-                text.textContent = 'Disconnected';
-                break;
-            case 'error':
-                indicator.classList.add('disconnected');
-                text.textContent = 'Connection Error';
-                break;
-            default:
-                indicator.classList.add('disconnected');
-                text.textContent = 'Unknown';
-        }
+        const statusConfig = {
+            connected: {
+                class: 'connected',
+                text: 'Connected'
+            },
+            connecting: {
+                class: 'connecting', 
+                text: `Connecting${reconnectAttempts > 0 ? ` (${reconnectAttempts}/${maxReconnectAttempts})` : '...'}`
+            },
+            disconnected: {
+                class: 'disconnected',
+                text: 'Disconnected'
+            },
+            error: {
+                class: 'disconnected',
+                text: 'Connection Error'
+            }
+        };
+        
+        const config = statusConfig[status] ?? statusConfig.disconnected;
+        indicator.classList.add(config.class);
+        text.textContent = config.text;
     }
     
-    // Update recording state
+    // Update recording state using optional chaining
     updateRecordingState() {
         const indicator = this.getElement('recordingIndicator');
         const isRecording = appState.get('ui.recording');
         
-        if (indicator) {
-            indicator.style.display = isRecording ? 'flex' : 'none';
-        }
+        indicator?.style.setProperty('display', isRecording ? 'flex' : 'none');
     }
     
-    // Update loading states
+    // Update loading states using destructuring and optional chaining
     updateLoadingStates() {
-        const loadingStates = appState.get('ui.loadingStates');
+        const { generatingResponse, generatingAudio } = appState.get('ui.loadingStates');
         
-        const responseLoading = this.getElement('responseLoading');
-        if (responseLoading) {
-            responseLoading.classList.toggle('show', loadingStates.generatingResponse);
-        }
-        
-        const ttsLoading = this.getElement('ttsLoading');
-        if (ttsLoading) {
-            ttsLoading.classList.toggle('show', loadingStates.generatingAudio);
-        }
+        this.getElement('responseLoading')?.classList.toggle('show', generatingResponse);
+        this.getElement('ttsLoading')?.classList.toggle('show', generatingAudio);
     }
     
-    // Update status display
+    // Update status display using template literals and optional chaining
     updateStatus() {
         const statusElement = this.getElement('status');
         const currentStatus = appState.get('data.currentStatus');
