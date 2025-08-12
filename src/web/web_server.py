@@ -36,7 +36,10 @@ class WebHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
         
-        html = get_main_html_template()
+        # Check if we're in text-only mode
+        text_only_mode = hasattr(self.server, 'web_interface') and self.server.web_interface.is_text_only_mode()
+        
+        html = get_main_html_template(text_only_mode=text_only_mode)
         self.wfile.write(html.encode())
     
     def _serve_status(self):

@@ -55,11 +55,32 @@ def main():
         help=personality_help
     )
     
+    parser.add_argument(
+        '--enable-text-chat',
+        action='store_true',
+        help='Enable text chat input in web interface (for testing/debugging)'
+    )
+    
+    parser.add_argument(
+        '--text-only',
+        action='store_true',
+        help='Enable text-only testing mode (no TTS/STT, faster for development)'
+    )
+    
     args = parser.parse_args()
     
     try:
         # Initialize the application
-        app = TerryTubeApp(use_web_gui=(args.mode == 'web'), personality_key=args.personality)
+        # Text-only mode automatically enables text chat and forces web interface
+        enable_text_chat = args.enable_text_chat or args.text_only
+        use_web_gui = (args.mode == 'web') or args.text_only  # Force web for text-only mode
+        
+        app = TerryTubeApp(
+            use_web_gui=use_web_gui, 
+            personality_key=args.personality,
+            enable_text_chat=enable_text_chat,
+            text_only_mode=args.text_only
+        )
         
         if args.info:
             # Show system information
@@ -78,7 +99,7 @@ def main():
             return
         
         # Run the application
-        if args.mode == 'terminal':
+        if args.mode == 'terminal' and not args.text_only:
             app.run_terminal_mode()
         else:
             app.run_web_mode()

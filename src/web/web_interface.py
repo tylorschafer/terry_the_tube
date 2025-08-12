@@ -88,3 +88,7 @@ class WebInterface:
     def reset_personality_selection(self):
         self.personality_selected_by_user = False
         # Keep the current personality info but mark as not user-selected
+    
+    def is_text_only_mode(self):
+        """Check if in text-only mode (no audio processing)"""
+        return self.text_only_mode

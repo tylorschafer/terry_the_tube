@@ -62,6 +62,7 @@ class AIHandler:
                 print("Please make sure Ollama is running and the model is available")
             raise
     
+    @timing_decorator("LLM generation")
     def generate_response(self, conversation_history, question_count=1):
         try:
             start_time = time.time()
@@ -92,15 +93,15 @@ class AIHandler:
             
             else:
                 raise Exception("No AI model available")
-                
         except Exception as e:
             print(f"Error generating response: {e}")
+            logger.error(f"LLM generation failed: {e}")
             raise
     
     def get_last_generation_time(self):
         """Get the time it took to generate the last response"""
         return self.last_generation_time
-    
+
     def is_model_available(self):
         try:
             if self.use_openai and self.openai_client and self.openai_client.is_available():

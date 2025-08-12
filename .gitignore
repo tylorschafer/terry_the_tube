@@ -2,7 +2,6 @@ chatbot
 claude.md
 asset
 share
-audio
 recordings
 transcripts
 .DS_Store
@@ -11,6 +10,4 @@ pyvenv.cfg
 lib/
 bin/
 __pycache__/
-
-# Environment files (contains API keys)
 .env

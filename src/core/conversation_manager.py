@@ -126,10 +126,14 @@ class ConversationManager:
             
             # Handle conversation end - use personality-specific exit string
             exit_string = self.ai_handler.get_exit_string()
-            if exit_string in response:
+            # Make exit string detection more precise - only trigger at the END of response
+            if response.strip().endswith(exit_string):
                 self.end_conversation()
                 
         except Exception as e:
+            # Clear generating response status on error
+            if self.web_interface:
+                self.web_interface.set_generating_response(False)
             display.error(f"Error generating response: {e}")
             self.handle_error_recovery()
     

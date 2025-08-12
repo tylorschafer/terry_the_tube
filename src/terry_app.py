@@ -27,10 +27,12 @@ warnings.filterwarnings("ignore", message="FP16 is not supported on CPU; using F
 
 
 class TerryTubeApp:
-    def __init__(self, use_web_gui=True, personality_key=None):
+    def __init__(self, use_web_gui=True, personality_key=None, enable_text_chat=False, text_only_mode=False):
         """Initialize Terry the Tube application"""
         self.use_web_gui = use_web_gui
         self.personality_key = personality_key
+        self.enable_text_chat = enable_text_chat
+        self.text_only_mode = text_only_mode
         self.web_interface = None
         self.recording_in_progress = False
         self.current_audio_file = None
@@ -40,11 +42,7 @@ class TerryTubeApp:
         
         # Setup web interface if needed
         if self.use_web_gui:
-            self.web_interface = WebInterface(
-                message_callback=self.handle_web_action,
-                enable_text_chat=ENABLE_TEXT_CHAT,
-                text_only_mode=TEXT_CHAT_ONLY
-            )
+            self.web_interface = WebInterface(message_callback=self.handle_web_action)
             # Set initial personality info
             if self.ai_handler:
                 # If personality was explicitly provided, mark as user-selected to skip overlay
@@ -56,21 +54,13 @@ class TerryTubeApp:
         try:
             display.section("Initializing Components")
             
-            # Initialize audio manager (mock for text-only mode)
-            if TEXT_CHAT_ONLY:
-                display.component_init("Mock Audio Manager (Text-Only)")
-                self.audio_manager = MockAudioManager()
-            else:
-                display.component_init("Audio Manager")
-                self.audio_manager = AudioManager()
+            # Initialize audio manager
+            display.component_init("Audio Manager")
+            self.audio_manager = AudioManager()
             
             # Initialize AI handler with personality
             display.component_init("AI Handler")
             self.ai_handler = AIHandler(personality_key=self.personality_key)
-            
-            # Set voice clone for the personality
-            if self.personality_key:
-                self.audio_manager.set_personality_voice(self.personality_key)
             
             # Initialize conversation manager
             display.component_init("Conversation Manager")
@@ -253,9 +243,6 @@ class TerryTubeApp:
             # Reinitialize AI handler with new personality
             self.ai_handler = AIHandler(personality_key=personality_key)
             
-            # Set voice clone for the new personality
-            self.audio_manager.set_personality_voice(personality_key)
-            
             # Update conversation manager with new AI handler
             self.conversation_manager.ai_handler = self.ai_handler
             
@@ -270,9 +257,11 @@ class TerryTubeApp:
             self.conversation_manager.start_conversation()
             
             display.success(f"Personality changed to: {self.ai_handler.get_personality_info()['name']}")
+            return True
             
         except Exception as e:
             display.error(f"Failed to change personality: {e}")
+            return False
     
     def get_personality_info(self):
         """Get current personality information"""
