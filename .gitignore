@@ -4,6 +4,7 @@ asset
 share
 recordings
 transcripts
+/audio
 .DS_Store
 venv/
 pyvenv.cfg
