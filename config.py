@@ -28,7 +28,7 @@ OLLAMA_TEMPERATURE = 0.7
 OLLAMA_TIMEOUT = 6
 
 # TTS Configuration
-USE_OPENAI_TTS = True  # Use OpenAI TTS for high-quality, fast generation (paid service)
+USE_OPENAI_TTS = False  # Use OpenAI TTS for high-quality, fast generation (paid service)
 OPENAI_TTS_MODEL = "gpt-4o-mini-tts"  # Options: "tts-1", "tts-1-hd", "gpt-4o-mini-tts" (supports instructions)
 OPENAI_TTS_VOICE = "echo"  # Options: "alloy", "echo", "fable", "onyx", "nova", "shimmer"
 OPENAI_TTS_SPEED = 1.0  # Speed: 0.25 to 4.0

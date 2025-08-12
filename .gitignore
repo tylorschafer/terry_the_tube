@@ -4,6 +4,7 @@ asset
 share
 recordings
 transcripts
+/audio
 .DS_Store
 venv/
 pyvenv.cfg
@@ -11,3 +12,4 @@ lib/
 bin/
 __pycache__/
 .env
+node_modules

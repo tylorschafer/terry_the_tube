@@ -4,7 +4,7 @@ Terry the Tube is an AI-powered beer dispensing system that combines speech reco
 
 ## Features
 
-- **Multiple AI Personalities**: Choose from 'Agressively Sarcastic Wanna Be Comedian' to 'Passively Bodering on Agressivesive Librarian'
+- **Multiple AI Personalities**: Choose from 'Sarcastic Comedian' to 'Passive Aggressive Librarian'
 - **Voice Interaction**: Speech-to-text input and text-to-speech responses
 - **Question-Based Beer Dispensing**: Users must answer 3 questions
 - **Dual Interface**: Both terminal and web modes available
@@ -30,15 +30,28 @@ The terminal mode offers a classic command-line experience with:
 ## Installation
 
 #### Prerequisites
-- [Download and install Ollama locally](https://ollama.com/download)
-- Once Ollama is installed, run: `ollama run gemma3:4b-it-q8_0`
+- **OpenAI API Key** set as `OPENAI_API_KEY` environment variable (for TTS and Chat)
+- [Download and install Ollama locally](https://ollama.com/download) for fallback AI
+- Once Ollama is installed, run: `ollama run mistral-small:24b`
 - Python 3.9.4 or higher
 - macOS system with `afplay`, `say`, and `rec` commands
 
 #### Setup
 1. Clone this repository and navigate to the directory
-2. Install dependencies: `pip install -r requirements.txt`
-3. Run the application:
+2. Install dependencies:
+   ```bash
+   pip install openai>=1.0.0
+   pip install langchain-ollama langchain-core
+   pip install openai-whisper
+   pip install keyboard
+   pip install requests
+   pip install python-dotenv
+   ```
+3. Create a `.env` file with your OpenAI API key:
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
+4. Run the application:
    ```bash
    python main.py                    # Web interface (default)
    python main.py --mode terminal    # Terminal mode
@@ -49,8 +62,8 @@ The terminal mode offers a classic command-line experience with:
 
 1. **Voice Input**: Users press and hold spacebar (terminal) or the talk button (web) to record
 2. **Speech Recognition**: OpenAI Whisper transcribes audio to text
-3. **AI Response**: Ollama generates personality-appropriate responses
-4. **Text-to-Speech**: TTS library synthesizes natural-sounding audio responses
+3. **AI Response**: OpenAI GPT-4.1-mini (primary) or Ollama (fallback) generates personality-appropriate responses
+4. **Text-to-Speech**: OpenAI TTS API synthesizes natural-sounding audio responses with personality-specific voice instructions
 5. **Beer Dispensing**: After answering 3 questions correctly, Terry dispenses beer with "BEER HERE!"
 
 ## Screenshots
@@ -100,10 +113,11 @@ python main.py --info
 ## Configuration
 
 The system is easily configurable via `config.py`:
-- **AI Model**: Change `OLLAMA_MODEL` to use different models
-- **TTS Voice**: Choose from 6 OpenAI voices (alloy, echo, fable, onyx, nova, shimmer)
-- **Personality**: Adjust the AI prompt for different personalities
+- **AI Model**: Toggle between OpenAI GPT-4.1-mini and Ollama models
+- **TTS Voice**: Choose from 6 OpenAI voices with personality-specific settings
+- **Personality**: Three distinct personalities with unique voice instructions
 - **Audio Settings**: Configure recording and playback parameters
+- **API Settings**: Configure OpenAI API usage and fallback behavior
 
 ## Architecture
 

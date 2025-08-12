@@ -4,6 +4,13 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from config import WEB_PORT, WEB_HOST
 
+# Import the new modular template system
+try:
+    from .web_templates_new import get_main_html_template
+except ImportError:
+    # Fallback to old system if new one not available
+    from .web_templates import get_main_html_template
+
 
 class WebInterface:
     def __init__(self, message_callback=None, enable_text_chat=False, text_only_mode=False):
@@ -19,6 +26,7 @@ class WebInterface:
         self.generating_response = False  # Track if we're generating LLM response
         self.text_chat_enabled = enable_text_chat  # Track if text chat is enabled
         self.text_only_mode = text_only_mode  # Track if in text-only mode
+        self.websocket_manager = None  # Will be set by web server
         
     def add_message(self, sender, message, is_ai=False, show_immediately=True):
         timestamp = time.strftime("%H:%M:%S")
@@ -30,13 +38,16 @@ class WebInterface:
             'show_immediately': show_immediately
         }
         self.messages.append(message_obj)
+        self._notify_state_change()
         return len(self.messages) - 1  # Return message index
         
     def set_status(self, status):
         self.status = status
+        self._notify_state_change()
     
     def clear_messages(self):
         self.messages = []
+        self._notify_state_change()
     
     def get_messages(self):
         return self.messages.copy()
@@ -46,12 +57,14 @@ class WebInterface:
     
     def set_generating_audio(self, generating):
         self.generating_audio = generating
+        self._notify_state_change()
     
     def is_generating_audio(self):
         return self.generating_audio
     
     def set_generating_response(self, generating):
         self.generating_response = generating
+        self._notify_state_change()
     
     def is_generating_response(self):
         return self.generating_response
@@ -59,6 +72,7 @@ class WebInterface:
     def show_message(self, message_index):
         if 0 <= message_index < len(self.messages):
             self.messages[message_index]['show_immediately'] = True
+            self._notify_state_change()
     
     def add_pending_message(self, sender, message, is_ai=False):
         return self.add_message(sender, message, is_ai, show_immediately=False)
@@ -78,6 +92,7 @@ class WebInterface:
         self.personality_selected = True
         if selected_by_user:
             self.personality_selected_by_user = True
+        self._notify_state_change()
     
     def get_personality_info(self):
         return self.current_personality
@@ -92,3 +107,16 @@ class WebInterface:
     def is_text_only_mode(self):
         """Check if in text-only mode (no audio processing)"""
         return self.text_only_mode
+    
+    def set_websocket_manager(self, websocket_manager):
+        """Set the WebSocket manager for real-time updates"""
+        self.websocket_manager = websocket_manager
+    
+    def _notify_state_change(self):
+        """Notify WebSocket clients of state changes"""
+        if self.websocket_manager:
+            self.websocket_manager.notify_state_change()
+    
+    def get_html_template(self):
+        """Get the HTML template for the web interface"""
+        return get_main_html_template(text_only_mode=self.text_only_mode)

@@ -1,7 +1,7 @@
 import json
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from .web_templates import get_main_html_template
+from .websocket_server import WebSocketManager
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -36,10 +36,8 @@ class WebHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
         
-        # Check if we're in text-only mode
-        text_only_mode = hasattr(self.server, 'web_interface') and self.server.web_interface.is_text_only_mode()
-        
-        html = get_main_html_template(text_only_mode=text_only_mode)
+        # Use the web interface's HTML template method
+        html = self.server.web_interface.get_html_template()
         self.wfile.write(html.encode())
     
     def _serve_status(self):
@@ -141,7 +139,22 @@ class WebHandler(BaseHTTPRequestHandler):
 
 
 def start_web_server(web_interface):
+    # Start WebSocket server
+    websocket_manager = WebSocketManager(web_interface)
+    web_interface.set_websocket_manager(websocket_manager)
+    websocket_thread = websocket_manager.start_server(
+        host=web_interface.host, 
+        port=web_interface.port + 1  # Use next port for WebSocket
+    )
+    
+    # Start HTTP server
     server = HTTPServer((web_interface.host, web_interface.port), WebHandler)
     server.web_interface = web_interface
     print(f"Web interface started at: http://{web_interface.host}:{web_interface.port}")
-    server.serve_forever()
+    print(f"WebSocket server started at: ws://{web_interface.host}:{web_interface.port + 1}")
+    
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        websocket_manager.stop_server()
+        server.server_close()
