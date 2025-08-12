@@ -1,38 +1,39 @@
 // Terry the Tube - WebSocket Connection Manager
 
-/**
- * @typedef {import('./types').WebSocketMessage} WebSocketMessage
- * @typedef {import('./types').StateUpdateData} StateUpdateData
- */
+import { WebSocketMessage, StateUpdateData } from './types';
 
 /**
  * WebSocket connection manager with health monitoring and reconnection
  */
-class WebSocketManager {
+export class WebSocketManager {
+    private healthCheckInterval: number | null;
+
     constructor() {
         this.healthCheckInterval = null;
     }
     
-    // Enhanced WebSocket connection using modern JavaScript
-    connect() {
+    /**
+     * Enhanced WebSocket connection using modern JavaScript
+     */
+    connect(): void {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const { hostname, port } = window.location;
         const wsUrl = `${protocol}//${hostname}:${parseInt(port) + 1}`;
         
         // Update state
-        appState.update({
+        window.appState.update({
             'connection.status': 'connecting',
             'ui.loadingStates.connecting': true
         });
         
         try {
             const newWs = new WebSocket(wsUrl);
-            appState.set('connection.ws', newWs);
+            window.appState.set('connection.ws', newWs);
             
             // Use arrow functions and destructuring for cleaner code
             newWs.onopen = () => {
                 console.log('WebSocket connected successfully');
-                appState.update({
+                window.appState.update({
                     'connection.status': 'connected',
                     'connection.reconnectAttempts': 0,
                     'connection.lastPing': Date.now(),
@@ -40,25 +41,25 @@ class WebSocketManager {
                 });
                 
                 this.startHealthCheck();
-                uiController.showError('Connected to server', 'info');
+                window.uiController.showError('Connected to server', 'info');
             };
             
             newWs.onmessage = ({ data }) => {
                 try {
-                    const message = JSON.parse(data);
+                    const message: WebSocketMessage = JSON.parse(data);
                     this.handleMessage(message);
-                    appState.set('connection.lastPing', Date.now());
+                    window.appState.set('connection.lastPing', Date.now());
                 } catch (error) {
                     console.error('Error parsing WebSocket message:', error);
-                    uiController.showError('Received invalid message from server');
+                    window.uiController.showError('Received invalid message from server');
                 }
             };
             
             newWs.onclose = ({ code, reason }) => {
                 console.log('WebSocket disconnected:', code, reason);
-                const wasConnected = appState.get('connection.status') === 'connected';
+                const wasConnected = window.appState.get('connection.status') === 'connected';
                 
-                appState.update({
+                window.appState.update({
                     'connection.status': 'disconnected',
                     'connection.ws': null,
                     'ui.loadingStates.connecting': false
@@ -66,56 +67,60 @@ class WebSocketManager {
                 
                 this.stopHealthCheck();
                 
-                wasConnected && uiController.showError('Disconnected from server');
+                wasConnected && window.uiController.showError('Disconnected from server');
                 this.scheduleReconnect();
             };
             
             newWs.onerror = (error) => {
                 console.error('WebSocket error:', error);
-                appState.update({
+                window.appState.update({
                     'connection.status': 'error',
                     'ui.loadingStates.connecting': false
                 });
-                uiController.showError('Connection error occurred');
+                window.uiController.showError('Connection error occurred');
             };
             
         } catch (error) {
             console.error('Failed to create WebSocket:', error);
-            appState.update({
+            window.appState.update({
                 'connection.status': 'error',
                 'ui.loadingStates.connecting': false
             });
-            uiController.showError('Failed to establish connection: ' + error.message);
+            window.uiController.showError(`Failed to establish connection: ${(error as Error).message}`);
         }
     }
     
-    // Schedule reconnection with exponential backoff
-    scheduleReconnect() {
-        const attempts = appState.get('connection.reconnectAttempts');
-        const maxAttempts = appState.get('connection.maxReconnectAttempts');
+    /**
+     * Schedule reconnection with exponential backoff
+     */
+    private scheduleReconnect(): void {
+        const attempts = window.appState.get('connection.reconnectAttempts');
+        const maxAttempts = window.appState.get('connection.maxReconnectAttempts');
         
         if (attempts < maxAttempts) {
             const newAttempts = attempts + 1;
-            const delay = appState.get('connection.reconnectDelay') * Math.pow(1.5, newAttempts - 1);
+            const delay = window.appState.get('connection.reconnectDelay') * Math.pow(1.5, newAttempts - 1);
             
-            appState.set('connection.reconnectAttempts', newAttempts);
+            window.appState.set('connection.reconnectAttempts', newAttempts);
             
             console.log(`Scheduling reconnection attempt ${newAttempts}/${maxAttempts} in ${delay}ms`);
             setTimeout(() => {
-                if (appState.get('connection.status') === 'disconnected') {
+                if (window.appState.get('connection.status') === 'disconnected') {
                     this.connect();
                 }
             }, delay);
         } else {
-            uiController.showError('Unable to reconnect - maximum attempts reached');
+            window.uiController.showError('Unable to reconnect - maximum attempts reached');
         }
     }
     
-    // Connection health monitoring using modern JavaScript
-    startHealthCheck() {
-        this.healthCheckInterval = setInterval(() => {
-            const ws = appState.get('connection.ws');
-            const lastPing = appState.get('connection.lastPing');
+    /**
+     * Connection health monitoring using modern JavaScript
+     */
+    private startHealthCheck(): void {
+        this.healthCheckInterval = window.setInterval(() => {
+            const ws: WebSocket = window.appState.get('connection.ws');
+            const lastPing: number = window.appState.get('connection.lastPing');
             const currentTime = Date.now();
             const timeSinceLastPing = currentTime - lastPing;
             
@@ -131,13 +136,15 @@ class WebSocketManager {
                              : timeSinceLastPing > 5000 ? 'fair' 
                              : 'good';
                 
-                appState.set('connection.quality', quality);
+                window.appState.set('connection.quality', quality);
             }
         }, 5000);
     }
     
-    // Stop health check
-    stopHealthCheck() {
+    /**
+     * Stop health check interval
+     */
+    private stopHealthCheck(): void {
         if (this.healthCheckInterval) {
             clearInterval(this.healthCheckInterval);
             this.healthCheckInterval = null;
@@ -146,23 +153,19 @@ class WebSocketManager {
     
     /**
      * Send WebSocket message
-     * @param {string} action - Action type
-     * @param {Record<string, any>} data - Optional data payload
-     * @returns {boolean} Success status
      */
-    sendMessage(action, data = {}) {
-        const ws = appState.get('connection.ws');
+    sendMessage(action: string, data: Record<string, any> = {}): boolean {
+        const ws: WebSocket = window.appState.get('connection.ws');
         
         if (!ws) {
             console.warn('WebSocket not initialized');
-            uiController.showError('Not connected to server');
+            window.uiController.showError('Not connected to server');
             return false;
         }
         
         if (ws.readyState === WebSocket.CONNECTING) {
             console.warn('WebSocket still connecting, queuing message...');
-            // Could implement message queuing here
-            uiController.showError('Still connecting, please try again');
+            window.uiController.showError('Still connecting, please try again');
             return false;
         }
         
@@ -178,57 +181,55 @@ class WebSocketManager {
                 return true;
             } catch (error) {
                 console.error('Error sending WebSocket message:', error);
-                uiController.showError('Failed to send message: ' + error.message);
+                window.uiController.showError(`Failed to send message: ${(error as Error).message}`);
                 return false;
             }
         } else {
             console.warn('WebSocket not connected, cannot send message:', action);
-            uiController.showError('Not connected to server');
+            window.uiController.showError('Not connected to server');
             return false;
         }
     }
     
     /**
      * Handle incoming WebSocket messages
-     * @param {WebSocketMessage} message - WebSocket message
      */
-    handleMessage(message) {
+    private handleMessage(message: WebSocketMessage): void {
         try {
             switch (message.type) {
                 case 'state_update':
                     this.updateInterface(message.data);
                     break;
                 case 'personalities_list':
-                    appState.set('data.availablePersonalities', message.data.personalities || []);
+                    window.appState.set('data.availablePersonalities', message.data.personalities || []);
                     window.populatePersonalityDropdown();
                     break;
                 case 'pong':
                     // Response to ping - update connection quality
-                    appState.set('connection.lastPing', Date.now());
+                    window.appState.set('connection.lastPing', Date.now());
                     break;
                 case 'error':
-                    uiController.showError(message.data.message || 'Server error occurred');
+                    window.uiController.showError(message.data.message || 'Server error occurred');
                     break;
                 case 'info':
-                    uiController.showError(message.data.message || 'Server notification', 'info');
+                    window.uiController.showError(message.data.message || 'Server notification', 'info');
                     break;
                 default:
                     console.log('Unknown message type:', message.type, message);
             }
         } catch (error) {
             console.error('Error handling WebSocket message:', error);
-            uiController.showError('Error processing server message');
+            window.uiController.showError('Error processing server message');
         }
     }
     
     /**
      * Update interface from server data
-     * @param {StateUpdateData} data - State update data from server
      */
-    updateInterface(data) {
+    private updateInterface(data: StateUpdateData): void {
         try {
             // Update all state from server data
-            appState.update({
+            window.appState.update({
                 'data.currentStatus': data.status || 'Ready to serve beer!',
                 'data.messages': data.messages || [],
                 'data.personalityInfo': data.personality || null,
@@ -239,18 +240,15 @@ class WebSocketManager {
             });
             
             // Update personality overlay state
-            appState.set('ui.personalityOverlayVisible', !data.personality_selected);
+            window.appState.set('ui.personalityOverlayVisible', !data.personality_selected);
             
             // Let the UI controller handle rendering
-            uiController.updatePersonalityState();
-            uiController.updateTextChatVisibility();
+            window.uiController.updatePersonalityState();
+            window.uiController.updateTextChatVisibility();
             
         } catch (error) {
             console.error('Error updating interface:', error);
-            uiController.showError('Failed to update interface: ' + error.message);
+            window.uiController.showError(`Failed to update interface: ${(error as Error).message}`);
         }
     }
 }
-
-// Export for use in main template
-window.WebSocketManager = WebSocketManager;

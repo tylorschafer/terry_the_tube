@@ -1,23 +1,23 @@
 // Terry the Tube - Centralized UI Controller
 
-/**
- * @typedef {import('./types').ElementKey} ElementKey
- * @typedef {import('./types').Message} Message
- * @typedef {import('./types').ErrorInfo} ErrorInfo
- */
+import { ElementKey, Message, ErrorInfo } from './types';
 
 /**
  * Centralized UI controller for DOM manipulation and rendering
  */
-class UIController {
+export class UIController {
+    private elements: Map<ElementKey, HTMLElement>;
+
     constructor() {
         this.elements = new Map();
         this.cacheElements();
     }
     
-    // Cache DOM elements for performance using ES6+ features
-    cacheElements() {
-        const elementMap = {
+    /**
+     * Cache DOM elements for performance using ES6+ features
+     */
+    private cacheElements(): void {
+        const elementMap: Record<string, ElementKey> = {
             connectionIndicator: 'connectionIndicator',
             connectionText: 'connectionText',
             connectionDot: 'connectionDot',
@@ -38,34 +38,36 @@ class UIController {
         
         // Use for...of with destructuring and optional chaining
         for (const [key, id] of Object.entries(elementMap)) {
-            const element = document.getElementById(id);
-            element && this.elements.set(key, element);
+            const element = document.getElementById(id as string);
+            if (element) {
+                this.elements.set(id, element);
+            }
         }
     }
     
     /**
      * Get cached DOM element
-     * @param {ElementKey} key - Element key
-     * @returns {HTMLElement|undefined} Cached DOM element
      */
-    getElement(key) {
+    getElement(key: ElementKey): HTMLElement | undefined {
         return this.elements.get(key);
     }
     
-    // Update connection status using modern JavaScript patterns
-    updateConnectionStatus() {
+    /**
+     * Update connection status using modern JavaScript patterns
+     */
+    updateConnectionStatus(): void {
         const indicator = this.getElement('connectionIndicator');
         const text = this.getElement('connectionText');
         
         if (!indicator || !text) return;
         
-        const connectionState = appState.get('connection');
+        const connectionState = window.appState.get('connection');
         const { status, reconnectAttempts, maxReconnectAttempts } = connectionState;
         
         // Remove all status classes using spread operator
         indicator.classList.remove('connected', 'connecting', 'disconnected');
         
-        const statusConfig = {
+        const statusConfig: Record<string, { class: string; text: string }> = {
             connected: {
                 class: 'connected',
                 text: 'Connected'
@@ -89,26 +91,34 @@ class UIController {
         text.textContent = config.text;
     }
     
-    // Update recording state using optional chaining
-    updateRecordingState() {
+    /**
+     * Update recording state using optional chaining
+     */
+    updateRecordingState(): void {
         const indicator = this.getElement('recordingIndicator');
-        const isRecording = appState.get('ui.recording');
+        const isRecording = window.appState.get('ui.recording');
         
-        indicator?.style.setProperty('display', isRecording ? 'flex' : 'none');
+        if (indicator) {
+            (indicator as HTMLElement).style.setProperty('display', isRecording ? 'flex' : 'none');
+        }
     }
     
-    // Update loading states using destructuring and optional chaining
-    updateLoadingStates() {
-        const { generatingResponse, generatingAudio } = appState.get('ui.loadingStates');
+    /**
+     * Update loading states using destructuring and optional chaining
+     */
+    updateLoadingStates(): void {
+        const { generatingResponse, generatingAudio } = window.appState.get('ui.loadingStates');
         
         this.getElement('responseLoading')?.classList.toggle('show', generatingResponse);
         this.getElement('ttsLoading')?.classList.toggle('show', generatingAudio);
     }
     
-    // Update status display using template literals and optional chaining
-    updateStatus() {
+    /**
+     * Update status display using template literals and optional chaining
+     */
+    updateStatus(): void {
         const statusElement = this.getElement('status');
-        const currentStatus = appState.get('data.currentStatus');
+        const currentStatus = window.appState.get('data.currentStatus');
         
         if (statusElement && currentStatus) {
             const icon = this.getStatusIcon(currentStatus);
@@ -116,13 +126,15 @@ class UIController {
         }
     }
     
-    // Update messages
-    updateMessages() {
+    /**
+     * Update messages display
+     */
+    updateMessages(): void {
         const messagesDiv = this.getElement('messages');
         if (!messagesDiv) return;
         
-        const messages = appState.get('data.messages') || [];
-        const lastCount = appState.get('ui.lastMessageCount');
+        const messages: Message[] = window.appState.get('data.messages') || [];
+        const lastCount = window.appState.get('ui.lastMessageCount');
         
         // Only add new messages, don't rebuild entire list
         if (messages.length > lastCount) {
@@ -132,14 +144,14 @@ class UIController {
                 messagesDiv.appendChild(messageDiv);
             }
             
-            appState.set('ui.lastMessageCount', messages.length);
+            window.appState.set('ui.lastMessageCount', messages.length);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
         // Handle message clearing (when count goes down)
         if (messages.length < lastCount) {
             messagesDiv.innerHTML = '';
-            appState.set('ui.lastMessageCount', 0);
+            window.appState.set('ui.lastMessageCount', 0);
             
             // Re-add all messages
             messages.forEach((msg, index) => {
@@ -147,7 +159,7 @@ class UIController {
                 messagesDiv.appendChild(messageDiv);
             });
             
-            appState.set('ui.lastMessageCount', messages.length);
+            window.appState.set('ui.lastMessageCount', messages.length);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
@@ -161,14 +173,16 @@ class UIController {
         });
     }
     
-    // Create message element
-    createMessageElement(msg, index) {
+    /**
+     * Create message element
+     */
+    private createMessageElement(msg: Message, index: number): HTMLDivElement {
         const messageDiv = document.createElement('div');
         
         // Set initial visibility based on show_immediately flag
         const initialClass = msg.show_immediately ? 'message show' : 'message pending';
         messageDiv.className = initialClass + ' ' + (msg.is_ai ? 'ai-message' : 'user-message');
-        messageDiv.setAttribute('data-message-id', index);
+        messageDiv.setAttribute('data-message-id', index.toString());
         
         const bubble = document.createElement('div');
         bubble.className = 'message-bubble';
@@ -185,24 +199,26 @@ class UIController {
         return messageDiv;
     }
     
-    // Update personality display and overlay
-    updatePersonalityState() {
+    /**
+     * Update personality display and overlay
+     */
+    updatePersonalityState(): void {
         const overlay = this.getElement('personalityOverlay');
         const personalityDisplay = this.getElement('personalityDisplay');
         
-        const personalitySelected = appState.get('data.selectedPersonality');
-        const personalityInfo = appState.get('data.personalityInfo');
+        const personalitySelected = window.appState.get('data.selectedPersonality');
+        const personalityInfo = window.appState.get('data.personalityInfo');
         
         if (personalitySelected && personalityInfo) {
             // Hide overlay if personality is selected
-            if (overlay) overlay.classList.add('hidden');
+            overlay?.classList.add('hidden');
             // Update personality display
             if (personalityDisplay) {
                 personalityDisplay.textContent = `${personalityInfo.short_name} Bartender`;
             }
         } else if (!personalitySelected) {
             // Show overlay if no personality selected
-            if (overlay && overlay.classList.contains('hidden')) {
+            if (overlay?.classList.contains('hidden')) {
                 overlay.classList.remove('hidden');
                 this.resetPersonalitySelection();
             }
@@ -213,20 +229,24 @@ class UIController {
         }
     }
     
-    // Update text chat visibility
-    updateTextChatVisibility() {
+    /**
+     * Update text chat visibility
+     */
+    updateTextChatVisibility(): void {
         const textChatContainer = this.getElement('textChatContainer');
-        const textChatEnabled = appState.get('ui.textChatEnabled');
+        const textChatEnabled = window.appState.get('ui.textChatEnabled');
         
         if (textChatContainer) {
-            textChatContainer.style.display = textChatEnabled ? 'block' : 'none';
+            (textChatContainer as HTMLElement).style.display = textChatEnabled ? 'block' : 'none';
         }
     }
     
-    // Reset personality selection UI
-    resetPersonalitySelection() {
-        const dropdown = this.getElement('personalityDropdown');
-        const confirmBtn = this.getElement('confirmPersonalityBtn');
+    /**
+     * Reset personality selection UI
+     */
+    resetPersonalitySelection(): void {
+        const dropdown = this.getElement('personalityDropdown') as HTMLSelectElement;
+        const confirmBtn = this.getElement('confirmPersonalityBtn') as HTMLButtonElement;
         
         if (dropdown) dropdown.value = '';
         if (confirmBtn) {
@@ -237,16 +257,19 @@ class UIController {
     
     /**
      * Show error notification with toast
-     * @param {string} message - Error message to display
-     * @param {'error'|'info'} type - Type of notification
      */
-    showError(message, type = 'error') {
+    showError(message: string, type: 'error' | 'info' = 'error'): void {
         // Add to error state
-        const currentErrors = appState.get('ui.errors') || [];
+        const currentErrors: ErrorInfo[] = window.appState.get('ui.errors') || [];
         const errorId = Date.now();
-        const newError = { id: errorId, message, type, timestamp: new Date() };
+        const newError: ErrorInfo = { 
+            id: errorId, 
+            message, 
+            type, 
+            timestamp: new Date() 
+        };
         
-        appState.set('ui.errors', [...currentErrors, newError]);
+        window.appState.set('ui.errors', [...currentErrors, newError]);
         
         // Create toast notification
         this.createToast(newError);
@@ -257,15 +280,17 @@ class UIController {
         }, 5000);
     }
     
-    // Create toast notification
-    createToast(error) {
+    /**
+     * Create toast notification
+     */
+    private createToast(error: ErrorInfo): void {
         const toast = document.createElement('div');
         toast.className = `toast toast-${error.type}`;
-        toast.setAttribute('data-error-id', error.id);
+        toast.setAttribute('data-error-id', error.id.toString());
         toast.innerHTML = `
             <i class="fas fa-${error.type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
             <span>${error.message}</span>
-            <button class="toast-close" onclick="uiController.removeError(${error.id})">
+            <button class="toast-close" onclick="window.uiController.removeError(${error.id})">
                 <i class="fas fa-times"></i>
             </button>
         `;
@@ -284,8 +309,10 @@ class UIController {
         }
     }
     
-    // Create toast container
-    createToastContainer() {
+    /**
+     * Create toast container if it doesn't exist
+     */
+    private createToastContainer(): void {
         const container = document.createElement('div');
         container.className = 'toast-container';
         document.body.appendChild(container);
@@ -293,12 +320,11 @@ class UIController {
     
     /**
      * Remove error notification
-     * @param {number} errorId - ID of error to remove
      */
-    removeError(errorId) {
-        const currentErrors = appState.get('ui.errors') || [];
+    removeError(errorId: number): void {
+        const currentErrors: ErrorInfo[] = window.appState.get('ui.errors') || [];
         const updatedErrors = currentErrors.filter(error => error.id !== errorId);
-        appState.set('ui.errors', updatedErrors);
+        window.appState.set('ui.errors', updatedErrors);
         
         const toast = document.querySelector(`[data-error-id="${errorId}"]`);
         if (toast) {
@@ -307,8 +333,10 @@ class UIController {
         }
     }
     
-    // Get status icon
-    getStatusIcon(status) {
+    /**
+     * Get status icon class name
+     */
+    private getStatusIcon(status: string): string {
         if (status.includes('Recording')) return 'fas fa-microphone';
         if (status.includes('Processing')) return 'fas fa-cog fa-spin';
         if (status.includes('Speaking')) return 'fas fa-volume-up';
@@ -316,6 +344,3 @@ class UIController {
         return 'fas fa-check-circle';
     }
 }
-
-// Export for use in main template
-window.UIController = UIController;

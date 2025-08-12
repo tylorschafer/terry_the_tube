@@ -1,16 +1,23 @@
 // Terry the Tube - Main Application Controller
 
+import { WebSocketManager } from './websocket-manager';
+
 /**
  * Main application controller coordinating all components
  */
-class AppController {
+export class AppController {
+    private wsManager: WebSocketManager;
+    private initialized: boolean;
+
     constructor() {
         this.wsManager = new WebSocketManager();
         this.initialized = false;
     }
     
-    // Initialize application
-    init() {
+    /**
+     * Initialize application
+     */
+    init(): void {
         if (this.initialized) return;
         
         console.log('Initializing Terry the Tube web interface...');
@@ -29,7 +36,7 @@ class AppController {
             this.loadPersonalities();
             
             // Set initial UI state
-            appState.update({
+            window.appState.update({
                 'data.currentStatus': 'Ready to serve beer!',
                 'ui.personalityOverlayVisible': true,
                 'ui.textChatEnabled': false
@@ -40,31 +47,35 @@ class AppController {
             
         } catch (error) {
             console.error('Error during app initialization:', error);
-            uiController.showError('Failed to initialize application: ' + error.message);
+            window.uiController.showError(`Failed to initialize application: ${(error as Error).message}`);
         }
     }
     
-    // Initialize state change listeners using modern object mapping
-    initializeStateListeners() {
-        const stateListeners = {
-            'connection.status': () => uiController.updateConnectionStatus(),
-            'ui.recording': () => uiController.updateRecordingState(),
-            'ui.loadingStates': () => uiController.updateLoadingStates(),
-            'data.currentStatus': () => uiController.updateStatus(),
-            'data.messages': () => uiController.updateMessages(),
-            'ui.textChatEnabled': () => uiController.updateTextChatVisibility()
+    /**
+     * Initialize state change listeners using modern object mapping
+     */
+    private initializeStateListeners(): void {
+        const stateListeners: Record<string, () => void> = {
+            'connection.status': () => window.uiController.updateConnectionStatus(),
+            'ui.recording': () => window.uiController.updateRecordingState(),
+            'ui.loadingStates': () => window.uiController.updateLoadingStates(),
+            'data.currentStatus': () => window.uiController.updateStatus(),
+            'data.messages': () => window.uiController.updateMessages(),
+            'ui.textChatEnabled': () => window.uiController.updateTextChatVisibility()
         };
         
         // Use Object.entries with destructuring
         Object.entries(stateListeners).forEach(([key, handler]) => {
-            appState.subscribe(key, handler);
+            window.appState.subscribe(key, handler);
         });
         
         console.log('State listeners initialized');
     }
     
-    // Setup UI event listeners using array method
-    setupEventListeners() {
+    /**
+     * Setup UI event listeners using array method
+     */
+    private setupEventListeners(): void {
         const setupMethods = [
             this.setupTextChatListeners,
             this.setupPersonalityListeners,
@@ -74,17 +85,19 @@ class AppController {
         setupMethods.forEach(method => method.call(this));
     }
     
-    // Setup text chat event listeners
-    setupTextChatListeners() {
-        const input = uiController.getElement('textChatInput');
-        const sendBtn = uiController.getElement('textChatSendBtn');
+    /**
+     * Setup text chat event listeners
+     */
+    private setupTextChatListeners(): void {
+        const input = window.uiController.getElement('textChatInput') as HTMLInputElement;
+        const sendBtn = window.uiController.getElement('textChatSendBtn');
         
         if (sendBtn) {
             sendBtn.addEventListener('click', () => this.sendTextMessage());
         }
         
         if (input) {
-            input.addEventListener('keypress', (e) => {
+            input.addEventListener('keypress', (e: KeyboardEvent) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     this.sendTextMessage();
@@ -93,24 +106,28 @@ class AppController {
         }
     }
     
-    // Setup personality selection listeners
-    setupPersonalityListeners() {
-        const confirmBtn = uiController.getElement('confirmPersonalityBtn');
+    /**
+     * Setup personality selection listeners
+     */
+    private setupPersonalityListeners(): void {
+        const confirmBtn = window.uiController.getElement('confirmPersonalityBtn');
         if (confirmBtn) {
             confirmBtn.addEventListener('click', () => this.confirmPersonalitySelection());
         }
     }
     
-    // Setup global error boundaries using modern event handling
-    setupErrorBoundaries() {
-        const errorHandlers = {
-            error: ({ error }) => {
+    /**
+     * Setup global error boundaries using modern event handling
+     */
+    private setupErrorBoundaries(): void {
+        const errorHandlers: Record<string, (event: any) => void> = {
+            error: ({ error }: ErrorEvent) => {
                 console.error('Global error:', error);
-                uiController.showError('An unexpected error occurred. Please refresh the page.');
+                window.uiController.showError('An unexpected error occurred. Please refresh the page.');
             },
-            unhandledrejection: ({ reason }) => {
+            unhandledrejection: ({ reason }: PromiseRejectionEvent) => {
                 console.error('Unhandled promise rejection:', reason);
-                uiController.showError('A network error occurred. Please check your connection.');
+                window.uiController.showError('A network error occurred. Please check your connection.');
             }
         };
         
@@ -119,64 +136,71 @@ class AppController {
         });
     }
     
-    // Recording functions using modern error handling
-    startRecording() {
-        const isRecording = appState.get('ui.recording');
-        const connectionStatus = appState.get('connection.status');
+    /**
+     * Recording functions using modern error handling
+     */
+    startRecording(): void {
+        const isRecording = window.appState.get('ui.recording');
+        const connectionStatus = window.appState.get('connection.status');
         
         // Early return pattern with guard clauses
         if (connectionStatus !== 'connected') {
-            uiController.showError('Cannot record - not connected to server');
+            window.uiController.showError('Cannot record - not connected to server');
             return;
         }
         
         if (isRecording) return;
         
         try {
-            appState.set('ui.recording', true);
+            window.appState.set('ui.recording', true);
             
             const success = this.wsManager.sendMessage('start_recording');
             if (success) {
                 console.log('Recording started');
             } else {
-                appState.set('ui.recording', false); // Rollback on failure
+                window.appState.set('ui.recording', false); // Rollback on failure
             }
         } catch (error) {
             console.error('Error starting recording:', error);
-            uiController.showError(`Failed to start recording: ${error.message}`);
-            appState.set('ui.recording', false);
+            window.uiController.showError(`Failed to start recording: ${(error as Error).message}`);
+            window.appState.set('ui.recording', false);
         }
     }
     
-    stopRecording() {
-        const currentRecording = appState.get('ui.recording');
+    /**
+     * Stop recording with error handling
+     */
+    stopRecording(): void {
+        const currentRecording = window.appState.get('ui.recording');
         
         if (currentRecording) {
             try {
-                appState.set('ui.recording', false);
+                window.appState.set('ui.recording', false);
                 
                 if (this.wsManager.sendMessage('stop_recording')) {
                     console.log('Recording stopped');
-                    appState.set('ui.loadingStates.generatingResponse', true);
+                    window.appState.set('ui.loadingStates.generatingResponse', true);
                 } else {
                     // Rollback state if send failed
-                    appState.set('ui.recording', true);
+                    window.appState.set('ui.recording', true);
                 }
             } catch (error) {
                 console.error('Error stopping recording:', error);
-                uiController.showError('Failed to stop recording: ' + error.message);
-                appState.set('ui.recording', true);
+                window.uiController.showError(`Failed to stop recording: ${(error as Error).message}`);
+                window.appState.set('ui.recording', true);
             }
         }
     }
     
-    // Send text message
-    sendTextMessage() {
-        const input = uiController.getElement('textChatInput');
-        const sendBtn = uiController.getElement('textChatSendBtn');
+    /**
+     * Send text message
+     */
+    sendTextMessage(): void {
+        const input = window.uiController.getElement('textChatInput') as HTMLInputElement;
+        const sendBtn = window.uiController.getElement('textChatSendBtn') as HTMLButtonElement;
         
         if (!input || !sendBtn) {
-            uiController.showError('Text chat interface not available');
+            window.uiController.showError('Text chat interface not available');
             return;
         }
         
@@ -184,7 +208,7 @@ class AppController {
         if (!message) return;
         
         // Set loading state
-        appState.set('ui.loadingStates.sendingMessage', true);
+        window.appState.set('ui.loadingStates.sendingMessage', true);
         input.disabled = true;
         sendBtn.disabled = true;
         sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -194,13 +218,13 @@ class AppController {
                 input.value = ''; // Clear input on success
                 // Loading state will be cleared when we receive response
             } else {
-                uiController.showError('Failed to send message - not connected to server');
+                window.uiController.showError('Failed to send message - not connected to server');
                 // Clear loading state on error
-                appState.set('ui.loadingStates.sendingMessage', false);
+                window.appState.set('ui.loadingStates.sendingMessage', false);
             }
         } catch (error) {
-            uiController.showError('Error sending message: ' + error.message);
-            appState.set('ui.loadingStates.sendingMessage', false);
+            window.uiController.showError(`Error sending message: ${(error as Error).message}`);
+            window.appState.set('ui.loadingStates.sendingMessage', false);
         } finally {
             // Re-enable input and button after a short delay
             setTimeout(() => {
@@ -208,26 +232,30 @@ class AppController {
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
                 input.focus();
-                appState.set('ui.loadingStates.sendingMessage', false);
+                window.appState.set('ui.loadingStates.sendingMessage', false);
             }, 500);
         }
     }
     
-    // Load personalities
-    loadPersonalities() {
+    /**
+     * Load available personalities
+     */
+    loadPersonalities(): void {
         this.wsManager.sendMessage('get_personalities');
     }
     
-    // Populate personality dropdown
-    populatePersonalityDropdown() {
-        const dropdown = uiController.getElement('personalityDropdown');
+    /**
+     * Populate personality dropdown
+     */
+    populatePersonalityDropdown(): void {
+        const dropdown = window.uiController.getElement('personalityDropdown') as HTMLSelectElement;
         if (!dropdown) return;
         
-        const availablePersonalities = appState.get('data.availablePersonalities') || [];
+        const availablePersonalities = window.appState.get('data.availablePersonalities') || [];
         
         dropdown.innerHTML = '<option value="">Choose a personality...</option>';
         
-        availablePersonalities.forEach(personality => {
+        availablePersonalities.forEach((personality: any) => {
             const option = document.createElement('option');
             option.value = personality.key;
             option.textContent = personality.name;
@@ -235,34 +263,36 @@ class AppController {
         });
         
         dropdown.addEventListener('change', function() {
-            const confirmBtn = uiController.getElement('confirmPersonalityBtn');
+            const confirmBtn = window.uiController.getElement('confirmPersonalityBtn') as HTMLButtonElement;
             if (this.value) {
                 if (confirmBtn) confirmBtn.disabled = false;
-                appState.set('data.selectedPersonality', this.value);
+                window.appState.set('data.selectedPersonality', this.value);
             } else {
                 if (confirmBtn) confirmBtn.disabled = true;
-                appState.set('data.selectedPersonality', null);
+                window.appState.set('data.selectedPersonality', null);
             }
         });
     }
     
-    // Confirm personality selection
-    confirmPersonalitySelection() {
-        const selectedPersonality = appState.get('data.selectedPersonality');
-        const connectionStatus = appState.get('connection.status');
+    /**
+     * Confirm personality selection
+     */
+    confirmPersonalitySelection(): void {
+        const selectedPersonality = window.appState.get('data.selectedPersonality');
+        const connectionStatus = window.appState.get('connection.status');
         
         if (!selectedPersonality) {
-            uiController.showError('Please select a personality first');
+            window.uiController.showError('Please select a personality first');
             return;
         }
         
         if (connectionStatus !== 'connected') {
-            uiController.showError('Cannot set personality - not connected to server');
+            window.uiController.showError('Cannot set personality - not connected to server');
             return;
         }
         
-        const confirmBtn = uiController.getElement('confirmPersonalityBtn');
-        const overlay = uiController.getElement('personalityOverlay');
+        const confirmBtn = window.uiController.getElement('confirmPersonalityBtn') as HTMLButtonElement;
+        const overlay = window.uiController.getElement('personalityOverlay');
         
         try {
             if (confirmBtn) {
@@ -272,30 +302,27 @@ class AppController {
             
             if (this.wsManager.sendMessage('select_personality', { personality: selectedPersonality })) {
                 // Hide overlay immediately when button is clicked
-                if (overlay) overlay.classList.add('hidden');
-                appState.set('ui.personalityOverlayVisible', false);
+                overlay?.classList.add('hidden');
+                window.appState.set('ui.personalityOverlayVisible', false);
             } else {
                 // Show overlay again if WebSocket send failed
-                if (overlay) overlay.classList.remove('hidden');
+                overlay?.classList.remove('hidden');
                 if (confirmBtn) {
                     confirmBtn.textContent = 'Try Again';
                     confirmBtn.disabled = false;
                 }
-                appState.set('ui.personalityOverlayVisible', true);
+                window.appState.set('ui.personalityOverlayVisible', true);
             }
         } catch (error) {
             console.error('Error setting personality:', error);
-            uiController.showError('Failed to set personality: ' + error.message);
+            window.uiController.showError(`Failed to set personality: ${(error as Error).message}`);
             
-            if (overlay) overlay.classList.remove('hidden');
+            overlay?.classList.remove('hidden');
             if (confirmBtn) {
                 confirmBtn.textContent = 'Try Again';
                 confirmBtn.disabled = false;
             }
-            appState.set('ui.personalityOverlayVisible', true);
+            window.appState.set('ui.personalityOverlayVisible', true);
         }
     }
 }
-
-// Export for use in main template
-window.AppController = AppController;

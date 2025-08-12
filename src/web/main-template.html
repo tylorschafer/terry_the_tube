@@ -111,9 +111,15 @@
     </script>
     
     <script>
-        // Initialize global instances
+        // Enable TypeScript IntelliSense and type checking
+        /// <reference path="./types.d.ts" />
+        
+        // Initialize global instances with type annotations
+        /** @type {AppState} */
         const appState = new AppState();
+        /** @type {UIController} */
         const uiController = new UIController();
+        /** @type {AppController} */
         const appController = new AppController();
         
         // Make functions available globally for HTML onclick handlers

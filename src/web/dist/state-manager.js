@@ -1,18 +1,6 @@
-// Terry the Tube - Centralized State Management System
-
-/**
- * @typedef {import('./types').AppStateData} AppStateData
- * @typedef {import('./types').StateChangeListener} StateChangeListener
- * @typedef {import('./types').UnsubscribeFunction} UnsubscribeFunction
- */
-
-/**
- * Centralized state management system with reactive updates
- */
-class AppState {
+export class AppState {
     constructor() {
         this.state = {
-            // Connection state
             connection: {
                 status: 'disconnected',
                 ws: null,
@@ -22,8 +10,6 @@ class AppState {
                 quality: 'unknown',
                 lastPing: null
             },
-            
-            // UI state
             ui: {
                 recording: false,
                 textChatEnabled: false,
@@ -38,8 +24,6 @@ class AppState {
                     sendingMessage: false
                 }
             },
-            
-            // App data
             data: {
                 availablePersonalities: [],
                 selectedPersonality: null,
@@ -48,25 +32,15 @@ class AppState {
                 personalityInfo: null
             }
         };
-        
         this.listeners = new Map();
         this.renderQueue = new Set();
         this.renderScheduled = false;
     }
-    
-    /**
-     * Subscribe to state changes
-     * @param {string} key - State path to listen for changes
-     * @param {StateChangeListener} callback - Function to call when state changes
-     * @returns {UnsubscribeFunction} Function to unsubscribe
-     */
     subscribe(key, callback) {
         if (!this.listeners.has(key)) {
             this.listeners.set(key, new Set());
         }
         this.listeners.get(key).add(callback);
-        
-        // Return unsubscribe function
         return () => {
             const callbacks = this.listeners.get(key);
             if (callbacks) {
@@ -74,77 +48,46 @@ class AppState {
             }
         };
     }
-    
-    // Notify listeners of state changes
     notify(key, newValue, oldValue) {
         const callbacks = this.listeners.get(key);
         if (callbacks) {
             callbacks.forEach(callback => callback(newValue, oldValue, key));
         }
     }
-    
-    /**
-     * Get state value by path
-     * @param {string} path - Dot-separated path to state value
-     * @returns {any} State value at path
-     */
     get(path) {
         return this.getNestedValue(this.state, path);
     }
-    
-    /**
-     * Set state value with change notification
-     * @param {string} path - Dot-separated path to state value
-     * @param {any} value - New value to set
-     */
     set(path, value) {
         const oldValue = this.get(path);
         this.setNestedValue(this.state, path, value);
         this.notify(path, value, oldValue);
-        
-        // Schedule render if needed
         this.scheduleRender(path);
     }
-    
-    /**
-     * Update multiple state values atomically
-     * @param {Record<string, any>} updates - Object mapping paths to new values
-     */
     update(updates) {
         const changes = Object.entries(updates).map(([path, value]) => {
             const oldValue = this.get(path);
             this.setNestedValue(this.state, path, value);
             return { path, value, oldValue };
         });
-        
-        // Notify all changes using forEach with destructuring
         changes.forEach(({ path, value, oldValue }) => {
             this.notify(path, value, oldValue);
             this.scheduleRender(path);
         });
     }
-    
-    // Helper to get nested object values using optional chaining
     getNestedValue(obj, path) {
         return path.split('.').reduce((current, key) => current?.[key], obj);
     }
-    
-    // Helper to set nested object values using ES6+ features
     setNestedValue(obj, path, value) {
         const keys = path.split('.');
         const lastKey = keys.pop();
         const target = keys.reduce((current, key) => {
-            // Use logical nullish assignment
-            current[key] ??= {};
+            current[key] ?? (current[key] = {});
             return current[key];
         }, obj);
         target[lastKey] = value;
     }
-    
-    // Schedule UI renders to avoid excessive DOM updates using arrow functions
     scheduleRender(path) {
         this.renderQueue.add(path);
-        
         if (!this.renderScheduled) {
             this.renderScheduled = true;
             requestAnimationFrame(() => {
@@ -154,42 +97,30 @@ class AppState {
             });
         }
     }
-    
-    // Process queued renders using Set and array methods
     processRenderQueue() {
-        // Group renders by component for efficiency using Set and map
-        const components = new Set(
-            [...this.renderQueue].map(path => path.split('.')[0])
-        );
-        
+        const components = new Set([...this.renderQueue].map(path => path.split('.')[0]));
         components.forEach(component => this.renderComponent(component));
     }
-    
-    // Render specific components using object map for cleaner code
     renderComponent(component) {
         const componentActions = {
-            connection: () => uiController.updateConnectionStatus(),
+            connection: () => window.uiController.updateConnectionStatus(),
             ui: () => {
                 if (this.renderQueue.has('ui.recording')) {
-                    uiController.updateRecordingState();
+                    window.uiController.updateRecordingState();
                 }
                 if (this.renderQueue.has('ui.loadingStates')) {
-                    uiController.updateLoadingStates();
+                    window.uiController.updateLoadingStates();
                 }
             },
             data: () => {
                 if (this.renderQueue.has('data.messages')) {
-                    uiController.updateMessages();
+                    window.uiController.updateMessages();
                 }
                 if (this.renderQueue.has('data.currentStatus')) {
-                    uiController.updateStatus();
+                    window.uiController.updateStatus();
                 }
             }
         };
-        
         componentActions[component]?.();
     }
 }
-
-// Export for use in main template
-window.AppState = AppState;

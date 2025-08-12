@@ -8,10 +8,18 @@ from pathlib import Path
 
 
 def get_file_content(filename):
-    """Get content from a file in the web directory"""
+    """Get content from a file in the web directory or dist directory"""
     web_dir = Path(__file__).parent
-    file_path = web_dir / filename
     
+    # Try compiled TypeScript first (dist directory)
+    if filename.endswith('.js') and not filename.startswith('dist/'):
+        dist_path = web_dir / 'dist' / filename
+        if dist_path.exists():
+            with open(dist_path, 'r', encoding='utf-8') as f:
+                return f.read()
+    
+    # Fall back to direct file path
+    file_path = web_dir / filename
     if file_path.exists():
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()

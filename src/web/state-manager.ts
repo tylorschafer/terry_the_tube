@@ -1,18 +1,19 @@
 // Terry the Tube - Centralized State Management System
 
-/**
- * @typedef {import('./types').AppStateData} AppStateData
- * @typedef {import('./types').StateChangeListener} StateChangeListener
- * @typedef {import('./types').UnsubscribeFunction} UnsubscribeFunction
- */
+import { AppStateData, StateChangeListener, UnsubscribeFunction } from './types';
 
 /**
  * Centralized state management system with reactive updates
  */
-class AppState {
+export class AppState {
+    private state: AppStateData;
+    private listeners: Map<string, Set<StateChangeListener>>;
+    private renderQueue: Set<string>;
+    private renderScheduled: boolean;
+
     constructor() {
+        // Initialize with proper typing
         this.state = {
-            // Connection state
             connection: {
                 status: 'disconnected',
                 ws: null,
@@ -23,7 +24,6 @@ class AppState {
                 lastPing: null
             },
             
-            // UI state
             ui: {
                 recording: false,
                 textChatEnabled: false,
@@ -39,7 +39,6 @@ class AppState {
                 }
             },
             
-            // App data
             data: {
                 availablePersonalities: [],
                 selectedPersonality: null,
@@ -56,15 +55,12 @@ class AppState {
     
     /**
      * Subscribe to state changes
-     * @param {string} key - State path to listen for changes
-     * @param {StateChangeListener} callback - Function to call when state changes
-     * @returns {UnsubscribeFunction} Function to unsubscribe
      */
-    subscribe(key, callback) {
+    subscribe(key: string, callback: StateChangeListener): UnsubscribeFunction {
         if (!this.listeners.has(key)) {
             this.listeners.set(key, new Set());
         }
-        this.listeners.get(key).add(callback);
+        this.listeners.get(key)!.add(callback);
         
         // Return unsubscribe function
         return () => {
@@ -75,8 +71,10 @@ class AppState {
         };
     }
     
-    // Notify listeners of state changes
-    notify(key, newValue, oldValue) {
+    /**
+     * Notify listeners of state changes
+     */
+    private notify(key: string, newValue: any, oldValue: any): void {
         const callbacks = this.listeners.get(key);
         if (callbacks) {
             callbacks.forEach(callback => callback(newValue, oldValue, key));
@@ -85,19 +83,15 @@ class AppState {
     
     /**
      * Get state value by path
-     * @param {string} path - Dot-separated path to state value
-     * @returns {any} State value at path
      */
-    get(path) {
+    get(path: string): any {
         return this.getNestedValue(this.state, path);
     }
     
     /**
      * Set state value with change notification
-     * @param {string} path - Dot-separated path to state value
-     * @param {any} value - New value to set
      */
-    set(path, value) {
+    set(path: string, value: any): void {
         const oldValue = this.get(path);
         this.setNestedValue(this.state, path, value);
         this.notify(path, value, oldValue);
@@ -108,9 +102,8 @@ class AppState {
     
     /**
      * Update multiple state values atomically
-     * @param {Record<string, any>} updates - Object mapping paths to new values
      */
-    update(updates) {
+    update(updates: Record<string, any>): void {
         const changes = Object.entries(updates).map(([path, value]) => {
             const oldValue = this.get(path);
             this.setNestedValue(this.state, path, value);
@@ -124,15 +117,19 @@ class AppState {
         });
     }
     
-    // Helper to get nested object values using optional chaining
-    getNestedValue(obj, path) {
+    /**
+     * Helper to get nested object values using optional chaining
+     */
+    private getNestedValue(obj: any, path: string): any {
         return path.split('.').reduce((current, key) => current?.[key], obj);
     }
     
-    // Helper to set nested object values using ES6+ features
-    setNestedValue(obj, path, value) {
+    /**
+     * Helper to set nested object values using ES6+ features
+     */
+    private setNestedValue(obj: any, path: string, value: any): void {
         const keys = path.split('.');
-        const lastKey = keys.pop();
+        const lastKey = keys.pop()!;
         const target = keys.reduce((current, key) => {
             // Use logical nullish assignment
             current[key] ??= {};
@@ -141,8 +138,10 @@ class AppState {
         target[lastKey] = value;
     }
     
-    // Schedule UI renders to avoid excessive DOM updates using arrow functions
-    scheduleRender(path) {
+    /**
+     * Schedule UI renders to avoid excessive DOM updates
+     */
+    private scheduleRender(path: string): void {
         this.renderQueue.add(path);
         
         if (!this.renderScheduled) {
@@ -155,8 +154,10 @@ class AppState {
         }
     }
     
-    // Process queued renders using Set and array methods
-    processRenderQueue() {
+    /**
+     * Process queued renders using Set and array methods
+     */
+    private processRenderQueue(): void {
         // Group renders by component for efficiency using Set and map
         const components = new Set(
             [...this.renderQueue].map(path => path.split('.')[0])
@@ -165,24 +166,26 @@ class AppState {
         components.forEach(component => this.renderComponent(component));
     }
     
-    // Render specific components using object map for cleaner code
-    renderComponent(component) {
-        const componentActions = {
-            connection: () => uiController.updateConnectionStatus(),
+    /**
+     * Render specific components using object map for cleaner code
+     */
+    private renderComponent(component: string): void {
+        const componentActions: Record<string, () => void> = {
+            connection: () => window.uiController.updateConnectionStatus(),
             ui: () => {
                 if (this.renderQueue.has('ui.recording')) {
-                    uiController.updateRecordingState();
+                    window.uiController.updateRecordingState();
                 }
                 if (this.renderQueue.has('ui.loadingStates')) {
-                    uiController.updateLoadingStates();
+                    window.uiController.updateLoadingStates();
                 }
             },
             data: () => {
                 if (this.renderQueue.has('data.messages')) {
-                    uiController.updateMessages();
+                    window.uiController.updateMessages();
                 }
                 if (this.renderQueue.has('data.currentStatus')) {
-                    uiController.updateStatus();
+                    window.uiController.updateStatus();
                 }
             }
         };
@@ -190,6 +193,3 @@ class AppState {
         componentActions[component]?.();
     }
 }
-
-// Export for use in main template
-window.AppState = AppState;
