@@ -8,7 +8,6 @@ import warnings
 from core.ai_handler import AIHandler
 from core.conversation_manager import ConversationManager
 from audio.audio_manager import AudioManager
-from audio.mock_audio_manager import MockAudioManager
 from web.web_interface import WebInterface
 from web.web_server import start_web_server
 from utils.cleanup import FileCleanup
