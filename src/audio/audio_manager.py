@@ -48,7 +48,7 @@ class AudioManager:
 
     def _fallback_tts(self, text):
         try:
-            subprocess.run(TTS_FALLBACK_COMMAND + [text], check=True)
+            subprocess.Popen(TTS_FALLBACK_COMMAND + [text])
             return "macOS_say_output"  # Placeholder since no file is created
         except Exception as e:
             print(f"Fallback TTS failed: {e}")
@@ -58,7 +58,7 @@ class AudioManager:
         try:
             if callback:
                 callback()  # Call callback before speaking
-            subprocess.run(TTS_FALLBACK_COMMAND + [text], check=True)
+            subprocess.Popen(TTS_FALLBACK_COMMAND + [text])
             return "macOS_say_output"
         except Exception as e:
             print(f"Fallback TTS failed: {e}")

@@ -26,8 +26,11 @@
             <h2>Select Terry's Personality</h2>
             <p>Choose how Terry will interact with you today. Each personality offers a unique beer-dispensing experience!</p>
             
-            <select class="personality-dropdown" id="personalityDropdown">
-                <option value="">Loading personalities...</option>
+            <select class="personality-dropdown" id="personalityDropdown" onchange="handlePersonalityChange()">
+                <option value="">Choose a personality...</option>
+                <option value="sarcastic_comedian">Obnoxious Sarcastic Wanna Be Comedian</option>
+                <option value="passive_aggressive_librarian">Passive Bordering on Aggressive Librarian</option>
+                <option value="condescending_childrens_host">Condescending Children's Show Host</option>
             </select>
             
             <button class="confirm-btn" id="confirmPersonalityBtn" disabled>
@@ -125,6 +128,26 @@
         window.startRecording = () => appController.startRecording();
         window.stopRecording = () => appController.stopRecording();
         window.populatePersonalityDropdown = () => appController.populatePersonalityDropdown();
+        window.handlePersonalityChange = () => {
+            console.log('Personality change handler called');
+            const dropdown = document.getElementById('personalityDropdown');
+            const confirmBtn = document.getElementById('confirmPersonalityBtn');
+            console.log('Dropdown value:', dropdown.value);
+            console.log('Button element:', confirmBtn);
+            if (dropdown && dropdown.value) {
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    console.log('Button enabled');
+                }
+                window.appState.set('data.selectedPersonality', dropdown.value);
+            } else {
+                if (confirmBtn) {
+                    confirmBtn.disabled = true;
+                    console.log('Button disabled');
+                }
+                window.appState.set('data.selectedPersonality', null);
+            }
+        };
         
         // Initialize application when DOM is loaded
         if (document.readyState === 'loading') {

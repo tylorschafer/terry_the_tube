@@ -132,18 +132,28 @@ class WebSocketManager:
         """Call this when state changes to notify all clients"""
         if self.loop and not self.loop.is_closed():
             try:
-                future = asyncio.run_coroutine_threadsafe(self.send_state_update(), self.loop)
-                # Don't wait for the result, just schedule it
+                asyncio.run_coroutine_threadsafe(self.send_state_update(), self.loop)
             except Exception as e:
                 print(f"Error scheduling state update: {e}")
     
     def start_server(self, host='localhost', port=8081):
         """Start the WebSocket server in a separate thread"""
         def run_server():
-            # Create a new event loop for this thread
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
-            
+            try:
+                # Set event loop policy for macOS compatibility
+                import sys
+                if sys.platform == 'darwin':
+                    import asyncio
+                    asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+                
+                # Create a new event loop for this thread
+                self.loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(self.loop)
+                print(f"Event loop created for WebSocket server thread")
+            except Exception as e:
+                print(f"Error setting up event loop: {e}")
+                return
+                
             try:
                 # Start the server
                 self.server = self.loop.run_until_complete(

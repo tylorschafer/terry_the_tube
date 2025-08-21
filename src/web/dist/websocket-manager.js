@@ -1,11 +1,19 @@
+// Terry the Tube - WebSocket Connection Manager
+/**
+ * WebSocket connection manager with health monitoring and reconnection
+ */
 export class WebSocketManager {
     constructor() {
         this.healthCheckInterval = null;
     }
+    /**
+     * Enhanced WebSocket connection using modern JavaScript
+     */
     connect() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const { hostname, port } = window.location;
         const wsUrl = `${protocol}//${hostname}:${parseInt(port) + 1}`;
+        // Update state
         window.appState.update({
             'connection.status': 'connecting',
             'ui.loadingStates.connecting': true
@@ -13,6 +21,7 @@ export class WebSocketManager {
         try {
             const newWs = new WebSocket(wsUrl);
             window.appState.set('connection.ws', newWs);
+            // Use arrow functions and destructuring for cleaner code
             newWs.onopen = () => {
                 console.log('WebSocket connected successfully');
                 window.appState.update({
@@ -65,6 +74,9 @@ export class WebSocketManager {
             window.uiController.showError(`Failed to establish connection: ${error.message}`);
         }
     }
+    /**
+     * Schedule reconnection with exponential backoff
+     */
     scheduleReconnect() {
         const attempts = window.appState.get('connection.reconnectAttempts');
         const maxAttempts = window.appState.get('connection.maxReconnectAttempts');
@@ -83,17 +95,22 @@ export class WebSocketManager {
             window.uiController.showError('Unable to reconnect - maximum attempts reached');
         }
     }
+    /**
+     * Connection health monitoring using modern JavaScript
+     */
     startHealthCheck() {
         this.healthCheckInterval = window.setInterval(() => {
             const ws = window.appState.get('connection.ws');
             const lastPing = window.appState.get('connection.lastPing');
             const currentTime = Date.now();
             const timeSinceLastPing = currentTime - lastPing;
-            if (ws?.readyState === WebSocket.OPEN) {
+            if ((ws === null || ws === void 0 ? void 0 : ws.readyState) === WebSocket.OPEN) {
+                // Check for stale connection
                 if (timeSinceLastPing > 30000) {
                     console.warn('Connection seems stale, sending ping...');
                     this.sendMessage('ping');
                 }
+                // Determine connection quality using ternary operators
                 const quality = timeSinceLastPing > 10000 ? 'poor'
                     : timeSinceLastPing > 5000 ? 'fair'
                         : 'good';
@@ -101,12 +118,18 @@ export class WebSocketManager {
             }
         }, 5000);
     }
+    /**
+     * Stop health check interval
+     */
     stopHealthCheck() {
         if (this.healthCheckInterval) {
             clearInterval(this.healthCheckInterval);
             this.healthCheckInterval = null;
         }
     }
+    /**
+     * Send WebSocket message
+     */
     sendMessage(action, data = {}) {
         const ws = window.appState.get('connection.ws');
         if (!ws) {
@@ -142,6 +165,9 @@ export class WebSocketManager {
             return false;
         }
     }
+    /**
+     * Handle incoming WebSocket messages
+     */
     handleMessage(message) {
         try {
             switch (message.type) {
@@ -153,6 +179,7 @@ export class WebSocketManager {
                     window.populatePersonalityDropdown();
                     break;
                 case 'pong':
+                    // Response to ping - update connection quality
                     window.appState.set('connection.lastPing', Date.now());
                     break;
                 case 'error':
@@ -170,8 +197,12 @@ export class WebSocketManager {
             window.uiController.showError('Error processing server message');
         }
     }
+    /**
+     * Update interface from server data
+     */
     updateInterface(data) {
         try {
+            // Update all state from server data
             window.appState.update({
                 'data.currentStatus': data.status || 'Ready to serve beer!',
                 'data.messages': data.messages || [],
@@ -181,7 +212,9 @@ export class WebSocketManager {
                 'ui.loadingStates.generatingResponse': data.generating_response || false,
                 'ui.loadingStates.generatingAudio': data.generating_audio || false
             });
+            // Update personality overlay state
             window.appState.set('ui.personalityOverlayVisible', !data.personality_selected);
+            // Let the UI controller handle rendering
             window.uiController.updatePersonalityState();
             window.uiController.updateTextChatVisibility();
         }

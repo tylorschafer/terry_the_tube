@@ -35,7 +35,7 @@ def get_main_html_template(text_only_mode=False):
     styles_css = get_file_content('styles.css')
     state_manager_js = get_file_content('state-manager.js')
     ui_controller_js = get_file_content('ui-controller.js')
-    websocket_manager_js = get_file_content('websocket-manager.js')
+    polling_manager_js = get_file_content('polling-manager.js')
     app_controller_js = get_file_content('app-controller.js')
     main_template = get_file_content('main-template.html')
     
@@ -66,7 +66,7 @@ def get_main_html_template(text_only_mode=False):
     template = main_template.replace('{STYLES_PLACEHOLDER}', styles_css)
     template = template.replace('{STATE_MANAGER_JS}', state_manager_js)
     template = template.replace('{UI_CONTROLLER_JS}', ui_controller_js)
-    template = template.replace('{WEBSOCKET_MANAGER_JS}', websocket_manager_js)
+    template = template.replace('{WEBSOCKET_MANAGER_JS}', polling_manager_js)
     template = template.replace('{APP_CONTROLLER_JS}', app_controller_js)
     template = template.replace('{RECORDING_INDICATOR_HTML}', recording_indicator_html)
     template = template.replace('{TALK_BUTTON_HTML}', talk_button_html)

@@ -1,4 +1,5 @@
-export class UIController {
+// Terry the Tube - UI Controller
+class UIController {
     constructor() {
         this.elements = new Map();
         this.cacheElements();
@@ -33,6 +34,7 @@ export class UIController {
         return this.elements.get(key);
     }
     updateConnectionStatus() {
+        var _a;
         const indicator = this.getElement('connectionIndicator');
         const text = this.getElement('connectionText');
         if (!indicator || !text)
@@ -58,7 +60,7 @@ export class UIController {
                 text: 'Connection Error'
             }
         };
-        const config = statusConfig[status] ?? statusConfig.disconnected;
+        const config = (_a = statusConfig[status]) !== null && _a !== void 0 ? _a : statusConfig.disconnected;
         indicator.classList.add(config.class);
         text.textContent = config.text;
     }
@@ -70,9 +72,10 @@ export class UIController {
         }
     }
     updateLoadingStates() {
+        var _a, _b;
         const { generatingResponse, generatingAudio } = window.appState.get('ui.loadingStates');
-        this.getElement('responseLoading')?.classList.toggle('show', generatingResponse);
-        this.getElement('ttsLoading')?.classList.toggle('show', generatingAudio);
+        (_a = this.getElement('responseLoading')) === null || _a === void 0 ? void 0 : _a.classList.toggle('show', generatingResponse);
+        (_b = this.getElement('ttsLoading')) === null || _b === void 0 ? void 0 : _b.classList.toggle('show', generatingAudio);
     }
     updateStatus() {
         const statusElement = this.getElement('status');
@@ -134,21 +137,21 @@ export class UIController {
     updatePersonalityState() {
         const overlay = this.getElement('personalityOverlay');
         const personalityDisplay = this.getElement('personalityDisplay');
-        const personalitySelected = window.appState.get('data.selectedPersonality');
+        const overlayVisible = window.appState.get('ui.personalityOverlayVisible');
         const personalityInfo = window.appState.get('data.personalityInfo');
-        if (personalitySelected && personalityInfo) {
-            overlay?.classList.add('hidden');
-            if (personalityDisplay) {
-                personalityDisplay.textContent = `${personalityInfo.short_name} Bartender`;
-            }
-        }
-        else if (!personalitySelected) {
-            if (overlay?.classList.contains('hidden')) {
-                overlay.classList.remove('hidden');
-                this.resetPersonalitySelection();
-            }
+        
+        if (overlayVisible) {
+            // Show overlay and reset selection
+            overlay?.classList.remove('hidden');
+            this.resetPersonalitySelection();
             if (personalityDisplay) {
                 personalityDisplay.textContent = 'Your AI Bartender';
+            }
+        } else {
+            // Hide overlay and show selected personality
+            overlay?.classList.add('hidden');
+            if (personalityDisplay && personalityInfo) {
+                personalityDisplay.textContent = `${personalityInfo.short_name} Bartender`;
             }
         }
     }

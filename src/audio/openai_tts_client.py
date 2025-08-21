@@ -119,14 +119,14 @@ class OpenAITTSClient:
         if on_audio_starts:
             on_audio_starts()
 
-        # Play the audio file using system command
+        # Play the audio file using system command (non-blocking)
         try:
             import subprocess
             from config import AUDIO_PLAY_COMMAND
 
-            # Play audio file
-            subprocess.run(AUDIO_PLAY_COMMAND + [audio_file], check=True)
-            print(f"Finished playing TTS audio: {audio_file}")
+            # Play audio file in background (non-blocking)
+            subprocess.Popen(AUDIO_PLAY_COMMAND + [audio_file])
+            print(f"Started playing TTS audio: {audio_file}")
 
         except Exception as e:
             print(f"Error playing audio: {e}")
