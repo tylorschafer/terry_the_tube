@@ -84,7 +84,7 @@ class AIHandler:
 
             # Use OpenAI if available and enabled
             if self.use_openai and self.openai_client and self.openai_client.is_available():
-                generate_gpt_response(self, context, start_time)
+                return self.generate_gpt_response(context, start_time)
 
             # Fall back to Ollama
             elif self.ollama_chain:
