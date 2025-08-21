@@ -141,9 +141,15 @@ class UIController {
         const personalityInfo = window.appState.get('data.personalityInfo');
         
         if (overlayVisible) {
-            // Show overlay and reset selection
+            // Only reset if overlay was previously hidden (newly shown)
+            const wasHidden = overlay?.classList.contains('hidden');
             overlay?.classList.remove('hidden');
-            this.resetPersonalitySelection();
+            
+            // Only reset dropdown when overlay is newly shown, not on every update
+            if (wasHidden) {
+                this.resetPersonalitySelection();
+            }
+            
             if (personalityDisplay) {
                 personalityDisplay.textContent = 'Your AI Bartender';
             }
