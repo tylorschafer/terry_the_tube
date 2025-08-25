@@ -168,6 +168,27 @@ class UIController {
             textChatContainer.style.display = textChatEnabled ? 'block' : 'none';
         }
     }
+    updateTextOnlyModeVisibility() {
+        const textChatContainer = this.getElement('textChatContainer');
+        const talkButton = this.getElement('talkButton');
+        const textOnlyMode = window.appState.get('ui.textOnlyMode');
+        
+        if (textOnlyMode) {
+            // In text-only mode: show text chat, hide talk button (if it exists)
+            if (textChatContainer) {
+                textChatContainer.style.display = 'block';
+            }
+            if (talkButton) {
+                talkButton.style.display = 'none';
+            }
+        } else {
+            // In normal mode: show talk button (if it exists), hide text chat by default (controlled by textChatEnabled)
+            if (talkButton) {
+                talkButton.style.display = 'flex';
+            }
+            // Text chat visibility is controlled by updateTextChatVisibility
+        }
+    }
     resetPersonalitySelection() {
         const dropdown = this.getElement('personalityDropdown');
         const confirmBtn = this.getElement('confirmPersonalityBtn');

@@ -46,6 +46,7 @@ class PollingManager {
                     'ui.loadingStates.generatingResponse': state.generating_response,
                     'ui.loadingStates.generatingAudio': state.generating_audio,
                     'ui.textChatEnabled': state.text_chat_enabled || false,
+                    'ui.textOnlyMode': state.text_only_mode || false,
                     'ui.personalityOverlayVisible': !state.personality_selected
                 });
                 

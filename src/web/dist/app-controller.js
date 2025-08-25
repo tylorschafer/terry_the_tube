@@ -16,7 +16,8 @@ class AppController {
             window.appState.update({
                 'data.currentStatus': 'Ready to serve beer!',
                 'ui.personalityOverlayVisible': true,
-                'ui.textChatEnabled': true
+                'ui.textChatEnabled': true,
+                'ui.textOnlyMode': false
             });
             this.initialized = true;
             console.log('App initialization complete');
@@ -34,6 +35,7 @@ class AppController {
             'data.currentStatus': () => window.uiController.updateStatus(),
             'data.messages': () => window.uiController.updateMessages(),
             'ui.textChatEnabled': () => window.uiController.updateTextChatVisibility(),
+            'ui.textOnlyMode': () => window.uiController.updateTextOnlyModeVisibility(),
             'ui.personalityOverlayVisible': () => window.uiController.updatePersonalityState()
         };
         Object.entries(stateListeners).forEach(([key, handler]) => {

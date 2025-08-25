@@ -70,7 +70,8 @@ class TerryTubeApp:
             self.conversation_manager = ConversationManager(
                 self.ai_handler, 
                 self.audio_manager,
-                self.web_interface
+                self.web_interface,
+                text_only_mode=TEXT_CHAT_ONLY
             )
             
             display.success("All components initialized successfully!")

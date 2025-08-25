@@ -38,7 +38,7 @@ OPENAI_TTS_FORMAT = "wav"  # Format: "mp3", "opus", "aac", "flac", "wav", "pcm"
 
 # Text Chat Configuration
 ENABLE_TEXT_CHAT = True  # Enable text chat input in web interface
-TEXT_CHAT_ONLY = True   # Text-only mode (no audio processing at all)
+TEXT_CHAT_ONLY = False   # Text-only mode (no audio processing at all)
 
 # Audio Configuration
 AUDIO_SAMPLE_RATE = 16000

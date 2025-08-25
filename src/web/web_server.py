@@ -57,7 +57,8 @@ class WebHandler(BaseHTTPRequestHandler):
             'personality_selected': self.server.web_interface.is_personality_selected(),
             'generating_audio': self.server.web_interface.is_generating_audio(),
             'generating_response': self.server.web_interface.is_generating_response(),
-            'text_chat_enabled': self.server.web_interface.is_text_chat_enabled()
+            'text_chat_enabled': self.server.web_interface.is_text_chat_enabled(),
+            'text_only_mode': self.server.web_interface.is_text_only_mode()
         }
         self.wfile.write(json.dumps(data).encode())
     
@@ -144,7 +145,8 @@ class WebHandler(BaseHTTPRequestHandler):
             'personality_selected': self.server.web_interface.is_personality_selected(),
             'generating_audio': self.server.web_interface.is_generating_audio(),
             'generating_response': self.server.web_interface.is_generating_response(),
-            'text_chat_enabled': self.server.web_interface.is_text_chat_enabled()
+            'text_chat_enabled': self.server.web_interface.is_text_chat_enabled(),
+            'text_only_mode': self.server.web_interface.is_text_only_mode()
         }
         self.wfile.write(json.dumps(state).encode())
     
