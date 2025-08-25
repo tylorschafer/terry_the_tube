@@ -1,0 +1,7 @@
+openai>=1.0.0
+langchain-ollama
+langchain-core
+openai-whisper
+keyboard
+requests
+python-dotenv

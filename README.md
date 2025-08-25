@@ -42,13 +42,7 @@ The terminal mode offers a classic command-line experience with:
 1. Clone this repository and navigate to the directory
 2. Install dependencies:
    ```bash
-   pip install openai>=1.0.0
-   pip install langchain-ollama langchain-core
-   pip install openai-whisper
-   pip install keyboard
-   pip install requests
-   pip install python-dotenv
-   # websockets no longer needed - now uses HTTP polling
+   pip install -r requirements.txt
    ```
 3. Create a `.env` file with your OpenAI API key:
    ```
