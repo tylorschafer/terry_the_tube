@@ -68,14 +68,15 @@ The terminal mode offers a classic command-line experience with:
 ### Web Interface
 The modern web interface provides an intuitive chat experience with Terry:
 
-![Web Interface](https://github.com/user-attachments/assets/terry-web-interface.png)
+<img width="1045" height="780" alt="Screenshot 2025-08-25 at 12 12 57 PM" src="https://github.com/user-attachments/assets/f73496fb-7540-4ec0-97e1-b5378aaf7537" />
+
 
 *Features: Real-time chat, hold-to-talk button, status indicators, and responsive design*
 
 ### Terminal Mode
 The classic terminal interface shows detailed processing information:
 
-![Terminal Interface](https://github.com/user-attachments/assets/terry-terminal-interface.png)
+<img width="858" height="356" alt="Screenshot 2025-08-25 at 12 14 20 PM" src="https://github.com/user-attachments/assets/3ad81831-a73d-4335-854d-fc82ff75a7ce" />
 
 *Features: Colored output, session tracking, real-time processing feedback, and spacebar recording*
 
