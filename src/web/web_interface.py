@@ -4,12 +4,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from config import WEB_PORT, WEB_HOST
 
-# Import the new modular template system
-try:
-    from .web_templates_new import get_main_html_template
-except ImportError:
-    # Fallback to old system if new one not available
-    from .web_templates import get_main_html_template
+# Import the template system
+from .web_templates import get_main_html_template
 
 
 class WebInterface:

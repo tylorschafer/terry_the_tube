@@ -1,5 +1,7 @@
 chatbot
-claude.md
+
+
+.md
 asset
 share
 recordings
@@ -13,3 +15,5 @@ bin/
 __pycache__/
 .env
 node_modules
+.gitignore
+CLAUDE.md

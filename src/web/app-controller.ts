@@ -39,7 +39,7 @@ export class AppController {
             window.appState.update({
                 'data.currentStatus': 'Ready to serve beer!',
                 'ui.personalityOverlayVisible': true,
-                'ui.textChatEnabled': false
+                'ui.textChatEnabled': true
             });
             
             this.initialized = true;

@@ -15,10 +15,11 @@ from utils.display import display
 
 
 class ConversationManager:
-    def __init__(self, ai_handler, audio_handler, web_interface=None):
+    def __init__(self, ai_handler, audio_handler, web_interface=None, text_only_mode=False):
         self.ai_handler = ai_handler
         self.audio_handler = audio_handler
         self.web_interface = web_interface
+        self.text_only_mode = text_only_mode
         self.conversation_history = []
         self.beer_dispensed = False
         self.conversation_active = True
@@ -181,6 +182,15 @@ class ConversationManager:
         self._restart_conversation_with_recovery()
     
     def _generate_and_play_tts(self, text, message_index=None):
+        if self.text_only_mode:
+            # In text-only mode, skip TTS and show message immediately
+            if self.web_interface:
+                if message_index is not None:
+                    self.web_interface.show_message(message_index)
+                self.web_interface.set_generating_audio(False)
+                self.web_interface.set_status("Ready to serve beer!")
+            return
+        
         def on_audio_starts():
             if self.web_interface:
                 # Show the message now that audio is starting to play

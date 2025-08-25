@@ -1,4 +1,5 @@
-export class UIController {
+// Terry the Tube - UI Controller
+class UIController {
     constructor() {
         this.elements = new Map();
         this.cacheElements();
@@ -33,6 +34,7 @@ export class UIController {
         return this.elements.get(key);
     }
     updateConnectionStatus() {
+        var _a;
         const indicator = this.getElement('connectionIndicator');
         const text = this.getElement('connectionText');
         if (!indicator || !text)
@@ -58,7 +60,7 @@ export class UIController {
                 text: 'Connection Error'
             }
         };
-        const config = statusConfig[status] ?? statusConfig.disconnected;
+        const config = (_a = statusConfig[status]) !== null && _a !== void 0 ? _a : statusConfig.disconnected;
         indicator.classList.add(config.class);
         text.textContent = config.text;
     }
@@ -70,9 +72,10 @@ export class UIController {
         }
     }
     updateLoadingStates() {
+        var _a, _b;
         const { generatingResponse, generatingAudio } = window.appState.get('ui.loadingStates');
-        this.getElement('responseLoading')?.classList.toggle('show', generatingResponse);
-        this.getElement('ttsLoading')?.classList.toggle('show', generatingAudio);
+        (_a = this.getElement('responseLoading')) === null || _a === void 0 ? void 0 : _a.classList.toggle('show', generatingResponse);
+        (_b = this.getElement('ttsLoading')) === null || _b === void 0 ? void 0 : _b.classList.toggle('show', generatingAudio);
     }
     updateStatus() {
         const statusElement = this.getElement('status');
@@ -110,6 +113,9 @@ export class UIController {
         messages.forEach((msg, index) => {
             const messageDiv = document.querySelector(`[data-message-id="${index}"]`);
             if (messageDiv && msg.show_immediately && messageDiv.classList.contains('pending')) {
+                // Properly show the message by removing inline hiding styles and updating classes
+                messageDiv.style.display = '';  // Remove display: none
+                messageDiv.style.opacity = '';  // Remove opacity: 0
                 messageDiv.classList.remove('pending');
                 messageDiv.classList.add('show');
             }
@@ -120,6 +126,13 @@ export class UIController {
         const initialClass = msg.show_immediately ? 'message show' : 'message pending';
         messageDiv.className = initialClass + ' ' + (msg.is_ai ? 'ai-message' : 'user-message');
         messageDiv.setAttribute('data-message-id', index.toString());
+        
+        // Ensure pending messages are completely hidden initially to prevent flash
+        if (!msg.show_immediately) {
+            messageDiv.style.opacity = '0';
+            messageDiv.style.display = 'none';
+        }
+        
         const bubble = document.createElement('div');
         bubble.className = 'message-bubble';
         bubble.textContent = msg.message;
@@ -134,21 +147,27 @@ export class UIController {
     updatePersonalityState() {
         const overlay = this.getElement('personalityOverlay');
         const personalityDisplay = this.getElement('personalityDisplay');
-        const personalitySelected = window.appState.get('data.selectedPersonality');
+        const overlayVisible = window.appState.get('ui.personalityOverlayVisible');
         const personalityInfo = window.appState.get('data.personalityInfo');
-        if (personalitySelected && personalityInfo) {
-            overlay?.classList.add('hidden');
-            if (personalityDisplay) {
-                personalityDisplay.textContent = `${personalityInfo.short_name} Bartender`;
-            }
-        }
-        else if (!personalitySelected) {
-            if (overlay?.classList.contains('hidden')) {
-                overlay.classList.remove('hidden');
+        
+        if (overlayVisible) {
+            // Only reset if overlay was previously hidden (newly shown)
+            const wasHidden = overlay?.classList.contains('hidden');
+            overlay?.classList.remove('hidden');
+            
+            // Only reset dropdown when overlay is newly shown, not on every update
+            if (wasHidden) {
                 this.resetPersonalitySelection();
             }
+            
             if (personalityDisplay) {
                 personalityDisplay.textContent = 'Your AI Bartender';
+            }
+        } else {
+            // Hide overlay and show selected personality
+            overlay?.classList.add('hidden');
+            if (personalityDisplay && personalityInfo) {
+                personalityDisplay.textContent = `${personalityInfo.short_name} Bartender`;
             }
         }
     }
@@ -157,6 +176,27 @@ export class UIController {
         const textChatEnabled = window.appState.get('ui.textChatEnabled');
         if (textChatContainer) {
             textChatContainer.style.display = textChatEnabled ? 'block' : 'none';
+        }
+    }
+    updateTextOnlyModeVisibility() {
+        const textChatContainer = this.getElement('textChatContainer');
+        const talkButton = this.getElement('talkButton');
+        const textOnlyMode = window.appState.get('ui.textOnlyMode');
+        
+        if (textOnlyMode) {
+            // In text-only mode: show text chat, hide talk button (if it exists)
+            if (textChatContainer) {
+                textChatContainer.style.display = 'block';
+            }
+            if (talkButton) {
+                talkButton.style.display = 'none';
+            }
+        } else {
+            // In normal mode: show talk button (if it exists), hide text chat by default (controlled by textChatEnabled)
+            if (talkButton) {
+                talkButton.style.display = 'flex';
+            }
+            // Text chat visibility is controlled by updateTextChatVisibility
         }
     }
     resetPersonalitySelection() {

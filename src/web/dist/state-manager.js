@@ -1,4 +1,5 @@
-export class AppState {
+// Terry the Tube - Centralized State Management System
+class AppState {
     constructor() {
         this.state = {
             connection: {
@@ -75,13 +76,14 @@ export class AppState {
         });
     }
     getNestedValue(obj, path) {
-        return path.split('.').reduce((current, key) => current?.[key], obj);
+        return path.split('.').reduce((current, key) => current === null || current === void 0 ? void 0 : current[key], obj);
     }
     setNestedValue(obj, path, value) {
         const keys = path.split('.');
         const lastKey = keys.pop();
         const target = keys.reduce((current, key) => {
-            current[key] ?? (current[key] = {});
+            var _a;
+            (_a = current[key]) !== null && _a !== void 0 ? _a : (current[key] = {});
             return current[key];
         }, obj);
         target[lastKey] = value;
@@ -102,6 +104,7 @@ export class AppState {
         components.forEach(component => this.renderComponent(component));
     }
     renderComponent(component) {
+        var _a;
         const componentActions = {
             connection: () => window.uiController.updateConnectionStatus(),
             ui: () => {
@@ -121,6 +124,6 @@ export class AppState {
                 }
             }
         };
-        componentActions[component]?.();
+        (_a = componentActions[component]) === null || _a === void 0 ? void 0 : _a.call(componentActions);
     }
 }

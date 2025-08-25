@@ -1,7 +1,7 @@
-import { WebSocketManager } from './websocket-manager';
-export class AppController {
+// Terry the Tube - Main Application Controller
+class AppController {
     constructor() {
-        this.wsManager = new WebSocketManager();
+        this.pollingManager = new PollingManager();
         this.initialized = false;
     }
     init() {
@@ -11,12 +11,13 @@ export class AppController {
         try {
             this.initializeStateListeners();
             this.setupEventListeners();
-            this.wsManager.connect();
+            this.pollingManager.start();
             this.loadPersonalities();
             window.appState.update({
                 'data.currentStatus': 'Ready to serve beer!',
                 'ui.personalityOverlayVisible': true,
-                'ui.textChatEnabled': false
+                'ui.textChatEnabled': true,
+                'ui.textOnlyMode': false
             });
             this.initialized = true;
             console.log('App initialization complete');
@@ -33,7 +34,9 @@ export class AppController {
             'ui.loadingStates': () => window.uiController.updateLoadingStates(),
             'data.currentStatus': () => window.uiController.updateStatus(),
             'data.messages': () => window.uiController.updateMessages(),
-            'ui.textChatEnabled': () => window.uiController.updateTextChatVisibility()
+            'ui.textChatEnabled': () => window.uiController.updateTextChatVisibility(),
+            'ui.textOnlyMode': () => window.uiController.updateTextOnlyModeVisibility(),
+            'ui.personalityOverlayVisible': () => window.uiController.updatePersonalityState()
         };
         Object.entries(stateListeners).forEach(([key, handler]) => {
             window.appState.subscribe(key, handler);
@@ -95,7 +98,7 @@ export class AppController {
             return;
         try {
             window.appState.set('ui.recording', true);
-            const success = this.wsManager.sendMessage('start_recording');
+            const success = this.pollingManager.sendMessage('start_recording');
             if (success) {
                 console.log('Recording started');
             }
@@ -114,7 +117,7 @@ export class AppController {
         if (currentRecording) {
             try {
                 window.appState.set('ui.recording', false);
-                if (this.wsManager.sendMessage('stop_recording')) {
+                if (this.pollingManager.sendMessage('stop_recording')) {
                     console.log('Recording stopped');
                     window.appState.set('ui.loadingStates.generatingResponse', true);
                 }
@@ -144,7 +147,7 @@ export class AppController {
         sendBtn.disabled = true;
         sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         try {
-            if (this.wsManager.sendMessage('send_text_message', { message: message })) {
+            if (this.pollingManager.sendMessage('send_text_message', { message: message })) {
                 input.value = '';
             }
             else {
@@ -167,7 +170,8 @@ export class AppController {
         }
     }
     loadPersonalities() {
-        this.wsManager.sendMessage('get_personalities');
+        // Personalities are loaded automatically by polling manager
+        console.log('Personalities will be loaded by polling manager');
     }
     populatePersonalityDropdown() {
         const dropdown = window.uiController.getElement('personalityDropdown');
@@ -213,7 +217,7 @@ export class AppController {
                 confirmBtn.textContent = 'Starting...';
                 confirmBtn.disabled = true;
             }
-            if (this.wsManager.sendMessage('select_personality', { personality: selectedPersonality })) {
+            if (this.pollingManager.sendMessage('select_personality', { personality: selectedPersonality })) {
                 overlay?.classList.add('hidden');
                 window.appState.set('ui.personalityOverlayVisible', false);
             }

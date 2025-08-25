@@ -8,7 +8,6 @@ import warnings
 from core.ai_handler import AIHandler
 from core.conversation_manager import ConversationManager
 from audio.audio_manager import AudioManager
-from audio.mock_audio_manager import MockAudioManager
 from web.web_interface import WebInterface
 from web.web_server import start_web_server
 from utils.cleanup import FileCleanup
@@ -71,7 +70,8 @@ class TerryTubeApp:
             self.conversation_manager = ConversationManager(
                 self.ai_handler, 
                 self.audio_manager,
-                self.web_interface
+                self.web_interface,
+                text_only_mode=TEXT_CHAT_ONLY
             )
             
             display.success("All components initialized successfully!")
@@ -133,9 +133,13 @@ class TerryTubeApp:
         display.user_input(text_message)
         self._add_message("You", text_message, is_ai=False)
         
-        # Process the text input through conversation manager
-        self.conversation_manager.add_user_message(text_message)
-        self.conversation_manager.generate_and_handle_response()
+        # Process the bot response asynchronously so user message shows immediately
+        import threading
+        def process_bot_response():
+            self.conversation_manager.add_user_message(text_message)
+            self.conversation_manager.generate_and_handle_response()
+        
+        threading.Thread(target=process_bot_response, daemon=True).start()
     
     def process_user_input(self, audio_file):
         """Process user input from audio file"""
