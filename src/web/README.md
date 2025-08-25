@@ -1,6 +1,6 @@
 # Terry the Tube - Frontend Architecture
 
-This directory contains the complete frontend implementation for Terry the Tube's web interface. The frontend is built with modern TypeScript and follows a clean, modular architecture using reactive state management and WebSocket-based real-time communication.
+This directory contains the complete frontend implementation for Terry the Tube's web interface. The frontend is built with modern TypeScript and follows a clean, modular architecture using reactive state management and HTTP polling-based communication.
 
 ## Architecture Overview
 
@@ -31,11 +31,11 @@ The frontend uses a **Component-Based Architecture** with centralized state mana
           └────────┬───────────────┘
                    │
 ┌─────────────────▼───────────────────────────────────┐
-│             WebSocket Manager                       │
-│          (websocket-manager.ts)                     │
-│  • Real-time server communication                  │
+│             Polling Manager                         │
+│          (polling-manager.js)                       │
+│  • HTTP polling for server communication           │
 │  • Connection health monitoring                    │
-│  • Automatic reconnection                          │
+│  • Automatic retry and error handling              │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -79,17 +79,17 @@ The frontend uses a **Component-Based Architecture** with centralized state mana
   - Toast notification system
   - Responsive UI state management
 
-### 4. **WebSocket Manager** (`websocket-manager.ts`)
-- **Purpose**: Real-time communication with backend
+### 4. **Polling Manager** (`polling-manager.js`)
+- **Purpose**: HTTP polling-based communication with backend
 - **Responsibilities**:
-  - Establish and maintain WebSocket connections
-  - Handle message serialization/deserialization
-  - Monitor connection health
-  - Implement reconnection logic with exponential backoff
+  - Regular polling of server state via REST API endpoints
+  - Send user actions to server via POST requests
+  - Monitor connection health through HTTP responses
+  - Handle request retries and error recovery
 - **Key Features**:
-  - Automatic reconnection with retry limits
-  - Connection quality monitoring
-  - Ping/pong heartbeat system
+  - Automatic retry with exponential backoff
+  - Connection status tracking via HTTP response codes
+  - Action queuing during connection issues
   - Error resilience and graceful degradation
 
 ## State Architecture
@@ -140,14 +140,14 @@ data: {
 User Action → App Controller → State Update → UI Controller → DOM Update
 ```
 
-### 2. **WebSocket Communication Flow**
+### 2. **HTTP Polling Communication Flow**
 ```
-Backend State Change → WebSocket Message → State Manager → UI Controller → Visual Update
+Polling Timer → GET /api/state → State Manager → UI Controller → Visual Update
 ```
 
 ### 3. **Voice Recording Flow**
 ```
-Hold Button → Start Recording → WebSocket → Backend Processing → State Update → UI Feedback
+Hold Button → Start Recording → POST /api/action → Backend Processing → State Update → UI Feedback
 ```
 
 ## File Structure
@@ -157,20 +157,18 @@ src/web/
 ├── README.md                    # This documentation
 ├── main-template.html           # HTML template with placeholders
 ├── styles.css                   # Complete CSS styling
-├── types.ts                     # TypeScript type definitions
+├── types.ts                     # TypeScript type definitions  
 ├── app-controller.ts            # Main application controller
 ├── state-manager.ts             # Reactive state management
 ├── ui-controller.ts             # DOM manipulation and rendering
-├── websocket-manager.ts         # WebSocket communication
 ├── web_interface.py             # Python backend interface
 ├── web_server.py               # HTTP server for static content
 ├── web_templates.py            # Template processing and injection
-├── websocket_server.py         # WebSocket server implementation
 └── dist/                       # Compiled JavaScript output
     ├── app-controller.js
     ├── state-manager.js
     ├── ui-controller.js
-    ├── websocket-manager.js
+    ├── polling-manager.js
     └── types.js
 ```
 
@@ -189,10 +187,10 @@ src/web/
 - Type-safe state operations
 
 ### 🌐 **Real-time Communication**
-- WebSocket-based bidirectional communication
-- Automatic reconnection with exponential backoff
-- Connection health monitoring
-- Message queuing and error handling
+- HTTP polling-based communication
+- Automatic retry with exponential backoff
+- Connection health monitoring via HTTP status codes
+- Action queuing and error handling
 
 ### 📱 **Responsive Design**
 - Mobile-first responsive layout
@@ -218,7 +216,7 @@ The frontend uses a **hybrid build system**:
 ## Browser Compatibility
 
 - **Modern Browsers**: Chrome 80+, Firefox 75+, Safari 13+, Edge 80+
-- **Features Used**: WebSockets, ES6+ JavaScript, CSS Grid/Flexbox, CSS Custom Properties
+- **Features Used**: HTTP Polling, ES6+ JavaScript, CSS Grid/Flexbox, CSS Custom Properties
 - **Fallbacks**: Graceful degradation for connection failures, error boundaries for JavaScript errors
 
 ## Development Workflow
@@ -233,7 +231,7 @@ The frontend uses a **hybrid build system**:
 - **Element Caching**: DOM elements are cached to avoid repeated queries
 - **Render Batching**: UI updates are batched using `requestAnimationFrame`
 - **Incremental Updates**: Messages are added incrementally, not re-rendered entirely
-- **Connection Pooling**: Single WebSocket connection shared across components
+- **Connection Management**: HTTP polling with shared state across components
 - **Memory Management**: Event listeners are properly cleaned up
 
 ## Error Handling
@@ -241,7 +239,7 @@ The frontend uses a **hybrid build system**:
 The frontend implements **comprehensive error handling**:
 
 - **Global Error Boundaries**: Catch and handle JavaScript errors
-- **WebSocket Error Recovery**: Automatic reconnection and fallback states
+- **HTTP Error Recovery**: Automatic retry and fallback states
 - **User Feedback**: Toast notifications for all error conditions
 - **State Rollback**: Failed operations roll back to previous valid state
 - **Graceful Degradation**: Application continues working with reduced functionality
@@ -250,5 +248,5 @@ The frontend implements **comprehensive error handling**:
 
 - **Input Validation**: All user inputs are validated before sending
 - **XSS Prevention**: Content is properly escaped in DOM updates
-- **CSRF Protection**: State-changing operations require valid WebSocket connection
+- **Request Validation**: State-changing operations are validated via HTTP endpoints
 - **Error Information**: Error messages don't leak sensitive server information

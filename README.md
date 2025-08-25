@@ -16,8 +16,8 @@ Terry the Tube is an AI-powered beer dispensing system that combines speech reco
 
 ### Web Interface (Default)
 The web interface provides a modern, user-friendly experience with:
-- Real-time chat interface with Terry powered by WebSockets
-- "Hold to Talk" button for voice input
+- Real-time chat interface with Terry powered by HTTP polling
+- "Hold to Talk" button for voice input (or text-only mode available)
 - Visual status indicators and loading states
 - Responsive design for desktop and mobile
 - Modern TypeScript architecture with reactive state management
@@ -48,7 +48,7 @@ The terminal mode offers a classic command-line experience with:
    pip install keyboard
    pip install requests
    pip install python-dotenv
-   pip install websockets
+   # websockets no longer needed - now uses HTTP polling
    ```
 3. Create a `.env` file with your OpenAI API key:
    ```
@@ -135,5 +135,5 @@ The system is easily configurable via `config.py`:
 ## Documentation
 
 For detailed technical information:
-- **[Frontend Architecture](src/web/README.md)**: Comprehensive guide to the TypeScript-based web interface, including component structure, state management, and WebSocket communication
+- **[Frontend Architecture](src/web/README.md)**: Comprehensive guide to the TypeScript-based web interface, including component structure, state management, and HTTP polling communication
 - **[Development Guide](CLAUDE.md)**: Technical documentation for developers and AI assistants working with the codebase

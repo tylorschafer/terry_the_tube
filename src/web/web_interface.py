@@ -22,7 +22,6 @@ class WebInterface:
         self.generating_response = False  # Track if we're generating LLM response
         self.text_chat_enabled = enable_text_chat  # Track if text chat is enabled
         self.text_only_mode = text_only_mode  # Track if in text-only mode
-        self.websocket_manager = None  # Will be set by web server
         
     def add_message(self, sender, message, is_ai=False, show_immediately=True):
         timestamp = time.strftime("%H:%M:%S")
@@ -104,14 +103,10 @@ class WebInterface:
         """Check if in text-only mode (no audio processing)"""
         return self.text_only_mode
     
-    def set_websocket_manager(self, websocket_manager):
-        """Set the WebSocket manager for real-time updates"""
-        self.websocket_manager = websocket_manager
-    
     def _notify_state_change(self):
-        """Notify WebSocket clients of state changes"""
-        if self.websocket_manager:
-            self.websocket_manager.notify_state_change()
+        """Notify clients of state changes (used for real-time updates)"""
+        # State changes are handled via HTTP polling in the current architecture
+        pass
     
     def get_html_template(self):
         """Get the HTML template for the web interface"""

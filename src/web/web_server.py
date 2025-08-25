@@ -15,24 +15,12 @@ class WebHandler(BaseHTTPRequestHandler):
             self._serve_api_state()
         elif self.path == '/api/personalities':
             self._serve_api_personalities()
-        elif self.path == '/status':
-            self._serve_status()
-        elif self.path == '/personalities':
-            self._serve_personalities()
         else:
             self._serve_404()
             
     def do_POST(self):
         if self.path == '/api/action':
             self._handle_api_action()
-        elif self.path == '/start_recording':
-            self._handle_start_recording()
-        elif self.path == '/stop_recording':
-            self._handle_stop_recording()
-        elif self.path == '/send_text_message':
-            self._handle_send_text_message()
-        elif self.path == '/select_personality':
-            self._handle_select_personality()
         else:
             self._serve_404()
     
@@ -44,92 +32,6 @@ class WebHandler(BaseHTTPRequestHandler):
         # Use the web interface's HTML template method
         html = self.server.web_interface.get_html_template()
         self.wfile.write(html.encode())
-    
-    def _serve_status(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        
-        data = {
-            'status': self.server.web_interface.get_status(),
-            'messages': self.server.web_interface.get_messages(),
-            'personality': self.server.web_interface.get_personality_info(),
-            'personality_selected': self.server.web_interface.is_personality_selected(),
-            'generating_audio': self.server.web_interface.is_generating_audio(),
-            'generating_response': self.server.web_interface.is_generating_response(),
-            'text_chat_enabled': self.server.web_interface.is_text_chat_enabled(),
-            'text_only_mode': self.server.web_interface.is_text_only_mode()
-        }
-        self.wfile.write(json.dumps(data).encode())
-    
-    def _handle_start_recording(self):
-        if self.server.web_interface.message_callback:
-            threading.Thread(
-                target=self.server.web_interface.message_callback, 
-                args=('start_recording',), 
-                daemon=True
-            ).start()
-        self._send_ok_response()
-    
-    def _handle_stop_recording(self):
-        if self.server.web_interface.message_callback:
-            threading.Thread(
-                target=self.server.web_interface.message_callback, 
-                args=('stop_recording',), 
-                daemon=True
-            ).start()
-        self._send_ok_response()
-    
-    def _handle_send_text_message(self):
-        try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            post_data = self.rfile.read(content_length)
-            data = json.loads(post_data.decode('utf-8'))
-            
-            if 'message' in data and self.server.web_interface.message_callback:
-                threading.Thread(
-                    target=self.server.web_interface.message_callback,
-                    args=('send_text_message', data),
-                    daemon=True
-                ).start()
-                self._send_ok_response()
-            else:
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b"Missing message parameter")
-                
-        except Exception as e:
-            self.send_response(500)
-            self.end_headers()
-            self.wfile.write(f"Error: {str(e)}".encode())
-    
-    def _serve_personalities(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        
-        personalities = get_personality_names()
-        data = {'personalities': [{'key': key, 'name': name} for key, name in personalities]}
-        self.wfile.write(json.dumps(data).encode())
-    
-    def _handle_select_personality(self):
-        try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            post_data = self.rfile.read(content_length)
-            data = json.loads(post_data.decode('utf-8'))
-            
-            if 'personality' in data:
-                self.server.web_interface.handle_action('change_personality', data)
-                self._send_ok_response()
-            else:
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b"Missing personality parameter")
-                
-        except Exception as e:
-            self.send_response(500)
-            self.end_headers()
-            self.wfile.write(f"Error: {str(e)}".encode())
     
     def _serve_api_state(self):
         """Serve complete application state for polling"""

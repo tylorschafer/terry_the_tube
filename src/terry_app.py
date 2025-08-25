@@ -3,6 +3,7 @@ Main Terry the Tube Application
 Orchestrates all components and handles different interface modes
 """
 import os
+import sys
 import threading
 import warnings
 from core.ai_handler import AIHandler
@@ -12,8 +13,7 @@ from web.web_interface import WebInterface
 from web.web_server import start_web_server
 from utils.cleanup import FileCleanup
 from utils.display import display
-import sys
-import os
+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from config import (
     STT_ERROR_MESSAGE, STT_TECHNICAL_ERROR, 
