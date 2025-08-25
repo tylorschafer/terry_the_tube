@@ -1,5 +1,20 @@
 # Terry the Tube 🍺
 
+## Screenshots
+
+### Web Interface
+The modern web interface provides an intuitive chat experience with Terry:
+
+<img width="1045" height="780" alt="Screenshot 2025-08-25 at 12 12 57 PM" src="https://github.com/user-attachments/assets/f73496fb-7540-4ec0-97e1-b5378aaf7537" />
+
+
+*Features: Real-time chat, hold-to-talk button, status indicators, and responsive design*
+
+### Terminal Mode
+The classic terminal interface shows detailed processing information:
+
+<img width="858" height="356" alt="Screenshot 2025-08-25 at 12 14 20 PM" src="https://github.com/user-attachments/assets/3ad81831-a73d-4335-854d-fc82ff75a7ce" />
+
 Terry the Tube is an AI-powered beer dispensing system that combines speech recognition, text-to-speech, and conversational AI. The system acts as a sarcastic beer-dispensing tube that interacts with users through voice, requires them to answer questions before dispensing beer, and uses advanced TTS for natural-sounding speech synthesis.
 
 ## Features
@@ -62,21 +77,6 @@ The terminal mode offers a classic command-line experience with:
 3. **AI Response**: OpenAI GPT-4.1-mini (primary) or Ollama (fallback) generates personality-appropriate responses
 4. **Text-to-Speech**: OpenAI TTS API synthesizes natural-sounding audio responses with personality-specific voice instructions
 5. **Beer Dispensing**: After answering 3 questions correctly, Terry dispenses beer with "BEER HERE!"
-
-## Screenshots
-
-### Web Interface
-The modern web interface provides an intuitive chat experience with Terry:
-
-<img width="1045" height="780" alt="Screenshot 2025-08-25 at 12 12 57 PM" src="https://github.com/user-attachments/assets/f73496fb-7540-4ec0-97e1-b5378aaf7537" />
-
-
-*Features: Real-time chat, hold-to-talk button, status indicators, and responsive design*
-
-### Terminal Mode
-The classic terminal interface shows detailed processing information:
-
-<img width="858" height="356" alt="Screenshot 2025-08-25 at 12 14 20 PM" src="https://github.com/user-attachments/assets/3ad81831-a73d-4335-854d-fc82ff75a7ce" />
 
 *Features: Colored output, session tracking, real-time processing feedback, and spacebar recording*
 
