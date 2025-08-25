@@ -113,6 +113,9 @@ class UIController {
         messages.forEach((msg, index) => {
             const messageDiv = document.querySelector(`[data-message-id="${index}"]`);
             if (messageDiv && msg.show_immediately && messageDiv.classList.contains('pending')) {
+                // Properly show the message by removing inline hiding styles and updating classes
+                messageDiv.style.display = '';  // Remove display: none
+                messageDiv.style.opacity = '';  // Remove opacity: 0
                 messageDiv.classList.remove('pending');
                 messageDiv.classList.add('show');
             }
@@ -123,6 +126,13 @@ class UIController {
         const initialClass = msg.show_immediately ? 'message show' : 'message pending';
         messageDiv.className = initialClass + ' ' + (msg.is_ai ? 'ai-message' : 'user-message');
         messageDiv.setAttribute('data-message-id', index.toString());
+        
+        // Ensure pending messages are completely hidden initially to prevent flash
+        if (!msg.show_immediately) {
+            messageDiv.style.opacity = '0';
+            messageDiv.style.display = 'none';
+        }
+        
         const bubble = document.createElement('div');
         bubble.className = 'message-bubble';
         bubble.textContent = msg.message;
